@@ -85,8 +85,6 @@ function processarOpcaoSorteio(opcao) {
         case '2':
             console.log('Saindo do menu de sorteio:');
             rl.close();
-            exibirMenu();
-            iniciarMenu();
             break;
         default:
             console.log('Opção inválida. Tente novamente.');
@@ -98,16 +96,20 @@ function iniciarMenu() {
         processarOpcao(opcao);
         if (opcao !== '2') {
             iniciarMenu();
+        }else{
+            rl.close();
         }
     });
 }
 
-function iniciarMenuSorteio(){
+function iniciarMenuSorteio() {
     exibirMenuSorteio();
-    rl.question('O que vamos fazer agora?: ', (opcao) => {
+    rl.question('O que vamos fazer agora? ', (opcao) => {
         processarOpcaoSorteio(opcao);
         if (opcao !== '2') {
             iniciarMenuSorteio();
+        } else {
+            iniciarMenu();
         }
     });
 }
