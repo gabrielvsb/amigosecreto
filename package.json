@@ -1,0 +1,19 @@
+{
+  "name": "amigo_secreto",
+  "version": "0.0.1",
+  "description": "Um projeto para brincar de amigo secreto!",
+  "main": "index.js",
+  "type": "module",
+  "scripts": {
+    "test": "echo \"Error: no test specified\" && exit 1",
+    "start": "node --experimental-modules index.js"
+  },
+  "author": "gabrielvsb/amigosecreto_v1",
+  "license": "ISC",
+  "dependencies": {
+    "csv-parser": "^3.0.0",
+    "mysql2": "^3.6.5",
+    "qrcode-terminal": "^0.12.0",
+    "whatsapp-web.js": "^1.23.0"
+  }
+}
