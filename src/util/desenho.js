@@ -1,4 +1,4 @@
-export async function desenhar() {
+export function desenhar() {
     console.log("                     _                _____                    _               __ ");
     console.log("     /\\             (_)              / ____|                  | |             /_ |");
     console.log("    /  \\   _ __ ___  _  __ _  ___   | (___   ___  ___ _ __ ___| |_ ___   __   _| |");
