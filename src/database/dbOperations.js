@@ -1,13 +1,18 @@
 export async function executarConsulta(connection, query, params = '') {
+    let rows;
     if(params !== ''){
-        return connection.query(query, params);
+        [rows] =  await connection.query(query, params);
+    }else{
+        [rows] = await connection.query(query);
     }
-    return connection.query(query);
+    return rows;
 }
 
-export async function resetarTabela(connection, table) {
+export async function resetarTabela(connection, table, resetar_ai = true) {
     await connection.query(`DELETE FROM ${table}`);
-    await connection.query(`ALTER TABLE ${table} AUTO_INCREMENT = 0`);
+    if(resetar_ai){
+        await connection.query(`ALTER TABLE ${table} AUTO_INCREMENT = 0`);
+    }
 }
 
 export async function inserir(connection, table, params) {

@@ -7,7 +7,7 @@ class Sorteio {
         this.maxTentativas = 3;
     }
 
-    get mostrarResultado() {
+    get retornarResultado() {
         this.realizarSorteio();
         return this.resultado;
     }
@@ -33,8 +33,8 @@ class Sorteio {
 
     sorteio() {
         this.lista_pessoas.forEach((element, index) => {
-            let pessoa_sorteada = this.sortearPosicao(this.numeros_sorteados, element, index, this.lista_pessoas);
-            this.numeros_sorteados.push(this.lista_pessoas.indexOf(pessoa_sorteada));
+            let pessoa_sorteada = this.sortearPosicao(this.numeros_sorteados, element, element.id, this.lista_pessoas);
+            this.numeros_sorteados.push(pessoa_sorteada.id);
             this.resultado.push({
                 pessoa: element,
                 amigosecreto: pessoa_sorteada
@@ -42,13 +42,13 @@ class Sorteio {
         });
     }
 
-    sortearPosicao(numeros_sorteados, pessoa, posicao_atual, lista_pessoas) {
+    sortearPosicao(numeros_sorteados, pessoa, id_atual, lista_pessoas) {
         let posicao = null;
         let valido = false;
         let pessoa_sorteada = null;
         while (!valido) {
             posicao = Math.floor(Math.random() * lista_pessoas.length);
-            if (!numeros_sorteados.includes(posicao) && posicao !== posicao_atual) {
+            if (!numeros_sorteados.includes(lista_pessoas[posicao].id) && lista_pessoas[posicao].id !== id_atual) {
                 if (lista_pessoas[posicao].grupo !== pessoa.grupo) {
                     valido = true;
                     pessoa_sorteada = lista_pessoas[posicao];

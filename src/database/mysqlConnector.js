@@ -1,13 +1,14 @@
-import { createConnection } from 'mysql2/promise';
+import {createConnection} from 'mysql2/promise';
 import config from '../config/db.js';
+import * as log from "../util/log.js";
 
 export async function conectarMySQL() {
-  const connection = await createConnection(config);
-  console.log('Conexão ao banco de dados estabelecida.');
-  return connection;
+    const connection = await createConnection(config);
+    log.gravarLog(' - Conexão ao banco de dados estabelecida.');
+    return connection;
 }
 
 export async function fecharConexaoMySQL(connection) {
-  await connection.end();
-  console.log('Conexão ao banco de dados fechada.');
+    await connection.end();
+    log.gravarLog(' - Conexão ao banco de dados fechada.')
 }
