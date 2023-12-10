@@ -1,6 +1,5 @@
 import * as readline from 'readline';
-import * as desenho from './src/util/desenho.js';
-import cd from 'child_process';
+import * as desenho from './src/util/desenho.js'
 import cores from './src/util/cores.js'
 import * as sp from "./src/salvar_participantes.js";
 import * as sortear from "./src/sortear.js";
