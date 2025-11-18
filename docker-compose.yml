@@ -39,6 +39,9 @@ services:
       - WAHA_PRINT_QR=False
       - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME}
       - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD}
+      - WHATSAPP_HOOK_URL=http://api:3000/api/webhook
+      - WHATSAPP_HOOK_EVENTS=message
+      - WHATSAPP_RESTART_ALL_SESSIONS=True
     ports:
       - "3000:3000"
     volumes:

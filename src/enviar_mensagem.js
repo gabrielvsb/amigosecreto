@@ -4,16 +4,18 @@ import * as dbOperations from './database/dbOperations.js';
 import * as mensagemUtil from "./util/mensagem.js";
 import * as log from './util/log.js';
 
+// Usando variáveis de ambiente
 const WAHA_URL = process.env.WAHA_URL;
 const WAHA_KEY = process.env.WAHA_API_KEY;
 
 export async function enviarMensagem() {
+    const connection = await mysqlConnector.conectarMySQL();
+
     if (!WAHA_URL || !WAHA_KEY) {
         log.gravarLog('ERRO: Configurações do WAHA (URL ou KEY) não encontradas no ambiente.');
+        await mysqlConnector.fecharConexaoMySQL(connection);
         return 'Erro de configuração do servidor.';
     }
-
-    const connection = await mysqlConnector.conectarMySQL();
 
     const query = `
         SELECT s.id as id_sorteio, p.nome as nome_participante, p.telefone, a.nome as nome_amigo
@@ -39,13 +41,15 @@ export async function enviarMensagem() {
     const config = {
         headers: {
             'Content-Type': 'application/json',
-            'X-Api-Key': WAHA_KEY // Envia a chave no header
+            'X-Api-Key': WAHA_KEY
         }
     };
 
     for (const registro of sorteio) {
         const texto = mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
-        const chatId = `55${registro.telefone.replace(/\D/g, '')}@c.us`;
+        let telefone = registro.telefone.replace(/\D/g, '');
+        if (!telefone.startsWith('55')) telefone = '55' + telefone;
+        const chatId = `${telefone}@c.us`;
 
         try {
             log.gravarLog(` - Enviando para: ${registro.nome_participante} (${chatId})`);
@@ -56,17 +60,15 @@ export async function enviarMensagem() {
                 text: texto
             };
 
-            // Passa o 'config' como terceiro parâmetro
             await axios.post(`${WAHA_URL}/api/sendText`, body, config);
 
-            // Opcional: Marcar como enviada no banco
+            // TODO: Você pode descomentar esta linha se quiser marcar a mensagem como enviada no banco
             // await connection.query('UPDATE sorteio SET mensagem_enviada = 1 WHERE id = ?', [registro.id_sorteio]);
 
             enviadas++;
             await new Promise(resolve => setTimeout(resolve, 1000));
 
         } catch (error) {
-            // Log mais detalhado do erro
             const errorMsg = error.response ?
                 `Status ${error.response.status} - ${JSON.stringify(error.response.data)}` :
                 error.message;
@@ -80,10 +82,11 @@ export async function enviarMensagem() {
     return `Processo finalizado. Enviadas: ${enviadas}, Erros: ${erros}.`;
 }
 
+
+// FUNÇÃO: Enviar mensagem de teste (Revertido para Texto Simples)
 export async function enviarTeste() {
     const connection = await mysqlConnector.conectarMySQL();
 
-    // Busca todos os participantes cadastrados
     const participantes = await dbOperations.executarConsulta(connection, 'SELECT * FROM participantes');
 
     if (participantes.length <= 0) {
@@ -91,18 +94,16 @@ export async function enviarTeste() {
         return ' - Não há participantes cadastrados para testar.';
     }
 
-    // Verifica se as variáveis de ambiente estão carregadas
     if (!WAHA_URL || !WAHA_KEY) {
         await mysqlConnector.fecharConexaoMySQL(connection);
         throw new Error('Configurações do WAHA ausentes.');
     }
 
-    log.gravarLog('- Iniciando TESTE de envio de mensagens...');
+    log.gravarLog('- Iniciando TESTE de envio de texto simples...');
 
     let enviados = 0;
     let erros = 0;
 
-    // Configuração do Header
     const config = {
         headers: {
             'Content-Type': 'application/json',
@@ -111,28 +112,34 @@ export async function enviarTeste() {
     };
 
     for (const p of participantes) {
-        // Formatação do telefone
         let telefone = p.telefone.replace(/\D/g, '');
         if (!telefone.startsWith('55')) telefone = '55' + telefone;
         const chatId = `${telefone}@c.us`;
 
-        const mensagemTeste = `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá ${p.nome}, se você recebeu esta mensagem, seu número está correto no sistema!`;
+        // Mensagem de texto simples instruindo a resposta manual
+        const mensagemTeste = `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá ${p.nome}, este é um teste de verificação de número. Por favor, responda APENAS com a palavra "OK" para confirmar que seu número está correto.`;
+
+        // Payload de texto simples
+        const payload = {
+            session: 'default',
+            chatId: chatId,
+            text: mensagemTeste,
+        };
 
         try {
-            log.gravarLog(` - Testando envio para ${p.nome} (${chatId})`);
+            log.gravarLog(` - Testando envio de TEXTO SIMPLES para ${p.nome} (${chatId})`);
 
-            await axios.post(`${WAHA_URL}/api/sendText`, {
-                chatId: chatId,
-                text: mensagemTeste,
-                session: 'default'
-            }, config);
+            // Endpoint CORRETO para WEBJS
+            await axios.post(`${WAHA_URL}/api/sendText`, payload, config);
 
             enviados++;
-            // Delay curto para não bloquear
             await new Promise(r => setTimeout(r, 500));
 
         } catch (error) {
-            log.gravarLog(` - ERRO no teste para ${p.nome}: ${error.message}`);
+            const errorMsg = error.response ?
+                `Status ${error.response.status} - ${JSON.stringify(error.response.data)}` :
+                error.message;
+            log.gravarLog(` - ERRO no teste para ${p.nome}: ${errorMsg}`);
             erros++;
         }
     }
