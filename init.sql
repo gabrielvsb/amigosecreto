@@ -4,7 +4,8 @@ CREATE TABLE IF NOT EXISTS participantes (
                                              id INT AUTO_INCREMENT PRIMARY KEY,
                                              nome VARCHAR(255) NOT NULL,
     telefone VARCHAR(50),
-    grupo VARCHAR(100)
+    grupo VARCHAR(100),
+    confirmacao_recebimento TINYINT(1) DEFAULT 0
     );
 
 CREATE TABLE IF NOT EXISTS sorteio (

@@ -188,9 +188,10 @@
                         <thead class="table-dark sticky-top">
                         <tr>
                             <th style="width: 10%">ID</th>
-                            <th style="width: 30%">Nome</th>
-                            <th style="width: 30%">Telefone</th>
-                            <th style="width: 30%">Grupo</th>
+                            <th style="width: 25%">Nome</th>
+                            <th style="width: 25%">Telefone</th>
+                            <th style="width: 25%">Grupo</th>
+                            <th style="width: 15%">Confirmação</th>
                         </tr>
                         </thead>
                         <tbody id="tabelaParticipantesBody">
@@ -309,7 +310,7 @@
 
     async function carregarTabela() {
         const tbody = document.getElementById('tabelaParticipantesBody');
-        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando dados...</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando dados...</div></td></tr>';
 
         try {
             const res = await fetch('/api/participantes/listar');
@@ -318,21 +319,26 @@
             tbody.innerHTML = '';
 
             if(dados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum participante encontrado.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Nenhum participante encontrado.</td></tr>';
                 return;
             }
 
             dados.forEach(p => {
+                const statusBadge = p.confirmacao_recebimento === 1
+                    ? '<span class="badge bg-success"><i class="fa-solid fa-check"></i> Confirmado</span>'
+                    : '<span class="badge bg-warning text-dark">Pendente</span>';
+
                 const row = `<tr>
                     <td>${p.id}</td>
                     <td><strong>${p.nome}</strong></td>
                     <td>${p.telefone}</td>
                     <td><span class="badge bg-secondary">${p.grupo || 'Geral'}</span></td>
+                    <td>${statusBadge}</td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Erro ao carregar dados do servidor.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">Erro ao carregar dados do servidor.</td></tr>';
         }
     }
 
@@ -350,7 +356,7 @@
             method: 'POST',
             headers: { 'Content-Type': 'application/json' },
             body: JSON.stringify({ nome, telefone, grupo })
-        }, null, null); // Sem botões de loading específicos aqui para manter ágil
+        }, null, null);
 
         if(sucesso) {
             // Limpar campos e recarregar tabela
@@ -380,7 +386,7 @@
     function testarDisparos() {
         Swal.fire({
             title: 'Enviar Teste?',
-            text: "Todos os participantes da lista receberão uma mensagem genérica de 'Teste de Conexão'. Isso serve para verificar se os números estão corretos.",
+            text: "Todos os participantes da lista receberão uma mensagem de texto simples, pedindo para responderem 'OK'.",
             icon: 'question',
             showCancelButton: true,
             confirmButtonColor: '#0d6efd',

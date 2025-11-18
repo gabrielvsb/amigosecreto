@@ -4,7 +4,6 @@ import * as dbOperations from './database/dbOperations.js';
 import * as mensagemUtil from "./util/mensagem.js";
 import * as log from './util/log.js';
 
-// Usando variáveis de ambiente
 const WAHA_URL = process.env.WAHA_URL;
 const WAHA_KEY = process.env.WAHA_API_KEY;
 
@@ -47,9 +46,8 @@ export async function enviarMensagem() {
 
     for (const registro of sorteio) {
         const texto = mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
-        let telefone = registro.telefone.replace(/\D/g, '');
-        if (!telefone.startsWith('55')) telefone = '55' + telefone;
-        const chatId = `${telefone}@c.us`;
+        // O número já deve ter o 55 no DB (ajustado em salvar_participantes)
+        const chatId = `${registro.telefone.replace(/\D/g, '')}@c.us`;
 
         try {
             log.gravarLog(` - Enviando para: ${registro.nome_participante} (${chatId})`);
@@ -61,9 +59,6 @@ export async function enviarMensagem() {
             };
 
             await axios.post(`${WAHA_URL}/api/sendText`, body, config);
-
-            // TODO: Você pode descomentar esta linha se quiser marcar a mensagem como enviada no banco
-            // await connection.query('UPDATE sorteio SET mensagem_enviada = 1 WHERE id = ?', [registro.id_sorteio]);
 
             enviadas++;
             await new Promise(resolve => setTimeout(resolve, 1000));
@@ -83,7 +78,7 @@ export async function enviarMensagem() {
 }
 
 
-// FUNÇÃO: Enviar mensagem de teste (Revertido para Texto Simples)
+// FUNÇÃO: Enviar mensagem de teste (Texto Simples para compatibilidade com WEBJS)
 export async function enviarTeste() {
     const connection = await mysqlConnector.conectarMySQL();
 
@@ -112,12 +107,12 @@ export async function enviarTeste() {
     };
 
     for (const p of participantes) {
+        // O número já deve ter o 55 no DB (ajustado em salvar_participantes)
         let telefone = p.telefone.replace(/\D/g, '');
-        if (!telefone.startsWith('55')) telefone = '55' + telefone;
         const chatId = `${telefone}@c.us`;
 
         // Mensagem de texto simples instruindo a resposta manual
-        const mensagemTeste = `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá ${p.nome}, este é um teste de verificação de número. Por favor, responda APENAS com a palavra "OK" para confirmar que seu número está correto.`;
+        const mensagemTeste = `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá *${p.nome}*, este é um teste de verificação de número. Por favor, *responda OK* para confirmar que seu número está correto no sistema.`;
 
         // Payload de texto simples
         const payload = {
@@ -126,10 +121,10 @@ export async function enviarTeste() {
             text: mensagemTeste,
         };
 
+
         try {
             log.gravarLog(` - Testando envio de TEXTO SIMPLES para ${p.nome} (${chatId})`);
 
-            // Endpoint CORRETO para WEBJS
             await axios.post(`${WAHA_URL}/api/sendText`, payload, config);
 
             enviados++;
