@@ -4,82 +4,394 @@
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Amigo Secreto Manager</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
     <style>
-        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
-        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
-        h1 { color: #333; text-align: center; }
-        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
-        button:hover { background: #0056b3; }
-        button:disabled { background: #ccc; }
-        .status { margin-top: 10px; font-weight: bold; }
-        .success { color: green; }
-        .error { color: red; }
+        body {
+            font-family: 'Poppins', sans-serif;
+            background: linear-gradient(135deg, #f5f7fa 0%, #c3cfe2 100%);
+            min-height: 100vh;
+            padding-top: 40px;
+        }
+        .main-card {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 10px 20px rgba(0,0,0,0.1);
+            transition: transform 0.3s;
+        }
+        .main-card:hover {
+            transform: translateY(-5px);
+        }
+        .header-title {
+            color: #2c3e50;
+            font-weight: 600;
+            margin-bottom: 40px;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.1);
+        }
+        .step-icon {
+            font-size: 2rem;
+            margin-bottom: 15px;
+            color: #0d6efd;
+        }
+        .btn-custom {
+            border-radius: 50px;
+            padding: 10px 25px;
+            font-weight: 500;
+            width: 100%;
+        }
+        .status-text {
+            font-size: 0.9rem;
+            margin-top: 10px;
+            min-height: 20px;
+        }
+        /* Estilo da Tabela no Modal */
+        .table-responsive {
+            max-height: 300px;
+            overflow-y: auto;
+        }
     </style>
 </head>
 <body>
-<h1>🎅 Gerenciador de Amigo Secreto</h1>
 
-<div class="card">
-    <h2>1. Carregar Participantes (CSV)</h2>
-    <input type="file" id="csvFile" accept=".csv">
-    <button onclick="uploadCSV()">Enviar CSV</button>
-    <div id="statusUpload" class="status"></div>
+<div class="container">
+    <div class="text-center">
+        <h1 class="header-title">🎅 Gerenciador de Amigo Secreto</h1>
+    </div>
+
+    <div class="row justify-content-center g-4 mb-4">
+
+        <div class="col-md-4">
+            <div class="card main-card h-100 p-3">
+                <div class="card-body text-center">
+                    <div class="step-icon"><i class="fa-solid fa-file-csv"></i></div>
+                    <h5 class="card-title">1. Importar CSV</h5>
+                    <p class="card-text text-muted small">Carregue a lista de participantes em massa.</p>
+
+                    <div class="mb-3 text-start">
+                        <input class="form-control form-control-sm" type="file" id="csvFile" accept=".csv">
+                    </div>
+                    <button onclick="uploadCSV()" id="btnUpload" class="btn btn-primary btn-custom btn-sm">
+                        <i class="fa-solid fa-cloud-arrow-up me-2"></i> Enviar CSV
+                    </button>
+                    <div id="statusUpload" class="status-text text-success fw-bold"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card main-card h-100 p-3">
+                <div class="card-body text-center">
+                    <div class="step-icon text-warning"><i class="fa-solid fa-shuffle"></i></div>
+                    <h5 class="card-title">2. Sorteio</h5>
+                    <p class="card-text text-muted small">Realize o sorteio dos pares automaticamente.</p>
+
+                    <div class="mb-3 p-2"></div> <button onclick="realizarSorteio()" id="btnSorteio" class="btn btn-warning text-white btn-custom btn-sm">
+                    <i class="fa-solid fa-dice me-2"></i> Sortear Agora
+                </button>
+                    <div id="statusSorteio" class="status-text text-success fw-bold"></div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card main-card h-100 p-3">
+                <div class="card-body text-center">
+                    <div class="step-icon text-success"><i class="fa-brands fa-whatsapp"></i></div>
+                    <h5 class="card-title">3. Envio</h5>
+                    <p class="card-text text-muted small">Dispare as mensagens com os resultados.</p>
+
+                    <div class="mb-3">
+                        <a href="http://localhost:3000/dashboard" target="_blank" class="text-decoration-none small">
+                            <i class="fa-solid fa-qrcode me-1"></i> Painel WAHA (Scan QR)
+                        </a>
+                    </div>
+
+                    <button onclick="enviarMensagens()" id="btnEnvio" class="btn btn-success btn-custom btn-sm">
+                        <i class="fa-solid fa-paper-plane me-2"></i> Enviar Mensagens
+                    </button>
+                    <div id="statusEnvio" class="status-text text-success fw-bold"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center">
+        <div class="col-md-8">
+            <div class="card main-card p-2 border-0" style="background-color: rgba(255,255,255,0.6);">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="text-info fs-3 me-3"><i class="fa-solid fa-users-gear"></i></div>
+                        <div>
+                            <h5 class="card-title mb-0 text-dark">Gerenciar Participantes</h5>
+                            <p class="card-text text-muted small mb-0">Visualize a lista atual, adicione manualmente ou teste os números.</p>
+                        </div>
+                    </div>
+                    <button data-bs-toggle="modal" data-bs-target="#modalParticipantes" onclick="carregarTabela()" class="btn btn-info text-white btn-sm px-4 py-2" style="border-radius: 20px;">
+                        <i class="fa-solid fa-list me-2"></i> Abrir Gerenciador
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="text-center mt-5 text-muted small">
+        <p>&copy; 2025 Amigo Secreto Project</p>
+    </div>
 </div>
 
-<div class="card">
-    <h2>2. Realizar Sorteio</h2>
-    <p>Certifique-se de que os participantes já foram carregados.</p>
-    <button onclick="realizarSorteio()">Sortear Agora</button>
-    <div id="statusSorteio" class="status"></div>
+<div class="modal fade" id="modalParticipantes" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-users me-2"></i>Gerenciar Participantes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+
+                <div class="card mb-4 bg-light border-0">
+                    <div class="card-body">
+                        <h6 class="card-subtitle mb-2 text-muted fw-bold">Adicionar Novo Participante</h6>
+                        <div class="row g-2">
+                            <div class="col-md-4">
+                                <input type="text" id="novoNome" class="form-control" placeholder="Nome">
+                            </div>
+                            <div class="col-md-4">
+                                <input type="text" id="novoTelefone" class="form-control" placeholder="Telefone (Ex: 5563...)">
+                            </div>
+                            <div class="col-md-3">
+                                <input type="text" id="novoGrupo" class="form-control" placeholder="Grupo (Opcional)">
+                            </div>
+                            <div class="col-md-1">
+                                <button onclick="adicionarManual()" class="btn btn-primary w-100" title="Adicionar"><i class="fa-solid fa-plus"></i></button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">Lista Atual</h6>
+                    <div>
+                        <button onclick="testarDisparos()" class="btn btn-outline-primary btn-sm me-2">
+                            <i class="fa-regular fa-paper-plane me-1"></i> Testar Disparos
+                        </button>
+
+                        <button onclick="limparTudo()" class="btn btn-outline-danger btn-sm">
+                            <i class="fa-solid fa-trash me-1"></i> Limpar Tudo
+                        </button>
+                    </div>
+                </div>
+
+                <div class="table-responsive border rounded bg-white">
+                    <table class="table table-striped table-hover mb-0 align-middle">
+                        <thead class="table-dark sticky-top">
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th style="width: 30%">Nome</th>
+                            <th style="width: 30%">Telefone</th>
+                            <th style="width: 30%">Grupo</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabelaParticipantesBody">
+                        </tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
 </div>
 
-<div class="card">
-    <h2>3. Enviar Mensagens</h2>
-    <p>Certifique-se de que o WhatsApp está conectado no painel do WAHA.</p>
-    <p><a href="http://localhost:3000/dashboard" target="_blank">Abrir Painel WAHA (Escanear QR)</a></p>
-    <button onclick="enviarMensagens()">Enviar via WhatsApp</button>
-    <div id="statusEnvio" class="status"></div>
-</div>
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    async function request(url, options, statusId) {
+    // --- Funções Auxiliares ---
+
+    function setLoading(btnId, isLoading) {
+        if(!btnId) return;
+        const btn = document.getElementById(btnId);
+        // Salva o texto original se ainda não existir
+        if (!btn.getAttribute('data-original-text')) {
+            btn.setAttribute('data-original-text', btn.innerHTML);
+        }
+
+        if (isLoading) {
+            btn.disabled = true;
+            btn.innerHTML = `<span class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>Processando...`;
+        } else {
+            btn.disabled = false;
+            btn.innerHTML = btn.getAttribute('data-original-text');
+        }
+    }
+
+    async function request(url, options, statusId, btnId) {
         const statusEl = document.getElementById(statusId);
-        statusEl.textContent = 'Processando...';
-        statusEl.className = 'status';
+        if(statusEl) statusEl.textContent = '';
+        setLoading(btnId, true);
 
         try {
             const res = await fetch(url, options);
             const data = await res.json();
 
             if (res.ok) {
-                statusEl.textContent = data.message || 'Sucesso!';
-                statusEl.className = 'status success';
+                Swal.fire({
+                    icon: 'success',
+                    title: 'Sucesso!',
+                    text: data.message || 'Operação realizada com sucesso.',
+                    timer: 2000,
+                    showConfirmButton: false
+                });
+                if(statusEl) {
+                    statusEl.textContent = 'Concluído com sucesso!';
+                    statusEl.className = 'status-text text-success fw-bold';
+                }
+                return true; // Indica sucesso
             } else {
                 throw new Error(data.error || 'Erro desconhecido');
             }
         } catch (err) {
-            statusEl.textContent = 'Erro: ' + err.message;
-            statusEl.className = 'status error';
+            Swal.fire({
+                icon: 'error',
+                title: 'Oops...',
+                text: 'Erro: ' + err.message,
+            });
+            if(statusEl) {
+                statusEl.textContent = 'Falha na operação.';
+                statusEl.className = 'status-text text-danger fw-bold';
+            }
+            return false; // Indica erro
+        } finally {
+            setLoading(btnId, false);
         }
     }
 
+    // --- Funções do Fluxo Principal ---
+
     function uploadCSV() {
         const fileInput = document.getElementById('csvFile');
-        if(fileInput.files.length === 0) return alert('Selecione um arquivo!');
+        if(fileInput.files.length === 0) {
+            Swal.fire('Atenção', 'Selecione um arquivo CSV primeiro!', 'warning');
+            return;
+        }
 
         const formData = new FormData();
         formData.append('arquivoCSV', fileInput.files[0]);
 
-        request('/api/participantes', { method: 'POST', body: formData }, 'statusUpload');
+        request('/api/participantes', { method: 'POST', body: formData }, 'statusUpload', 'btnUpload');
     }
 
     function realizarSorteio() {
-        request('/api/sortear', { method: 'POST' }, 'statusSorteio');
+        request('/api/sortear', { method: 'POST' }, 'statusSorteio', 'btnSorteio');
     }
 
     function enviarMensagens() {
-        if(!confirm('Isso enviará mensagens reais para todos os sorteados. Continuar?')) return;
-        request('/api/enviar', { method: 'POST' }, 'statusEnvio');
+        Swal.fire({
+            title: 'Atenção!',
+            text: "Isso enviará as mensagens com os resultados OFICIAIS do sorteio para todos os participantes via WhatsApp.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            cancelButtonColor: '#d33',
+            confirmButtonText: 'Sim, enviar agora!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                request('/api/enviar', { method: 'POST' }, 'statusEnvio', 'btnEnvio');
+            }
+        });
+    }
+
+    // --- Funções de Gerenciamento (Modal) ---
+
+    async function carregarTabela() {
+        const tbody = document.getElementById('tabelaParticipantesBody');
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando dados...</div></td></tr>';
+
+        try {
+            const res = await fetch('/api/participantes/listar');
+            const dados = await res.json();
+
+            tbody.innerHTML = '';
+
+            if(dados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum participante encontrado.</td></tr>';
+                return;
+            }
+
+            dados.forEach(p => {
+                const row = `<tr>
+                    <td>${p.id}</td>
+                    <td><strong>${p.nome}</strong></td>
+                    <td>${p.telefone}</td>
+                    <td><span class="badge bg-secondary">${p.grupo || 'Geral'}</span></td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        } catch (err) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Erro ao carregar dados do servidor.</td></tr>';
+        }
+    }
+
+    async function adicionarManual() {
+        const nome = document.getElementById('novoNome').value;
+        const telefone = document.getElementById('novoTelefone').value;
+        const grupo = document.getElementById('novoGrupo').value;
+
+        if(!nome || !telefone) {
+            Swal.fire('Campos obrigatórios', 'Por favor, preencha Nome e Telefone.', 'warning');
+            return;
+        }
+
+        const sucesso = await request('/api/participantes/manual', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, telefone, grupo })
+        }, null, null); // Sem botões de loading específicos aqui para manter ágil
+
+        if(sucesso) {
+            // Limpar campos e recarregar tabela
+            document.getElementById('novoNome').value = '';
+            document.getElementById('novoTelefone').value = '';
+            document.getElementById('novoGrupo').value = '';
+            carregarTabela();
+        }
+    }
+
+    function limparTudo() {
+        Swal.fire({
+            title: 'Apagar TUDO?',
+            text: "Essa ação é irreversível! Todos os participantes e o sorteio atual serão excluídos.",
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sim, apagar tudo!'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                await request('/api/participantes', { method: 'DELETE' }, null, null);
+                carregarTabela();
+            }
+        });
+    }
+
+    function testarDisparos() {
+        Swal.fire({
+            title: 'Enviar Teste?',
+            text: "Todos os participantes da lista receberão uma mensagem genérica de 'Teste de Conexão'. Isso serve para verificar se os números estão corretos.",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#0d6efd',
+            confirmButtonText: 'Sim, testar!',
+            cancelButtonText: 'Cancelar'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                // Reutiliza a função request genérica
+                request('/api/testar', { method: 'POST' }, null, null);
+            }
+        });
     }
 </script>
 </body>

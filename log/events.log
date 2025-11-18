@@ -39,3 +39,24 @@
 [2025-11-18T12:21:33.149Z]  - Enviando para: Francielly (556392319858@c.us)
 [2025-11-18T12:21:34.354Z]  - Enviando para: Erika (556392319858@c.us)
 [2025-11-18T12:21:35.388Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:09:17.638Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:09:17.662Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:23:04.162Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:23:04.188Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:23:18.217Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:23:18.221Z] - Iniciando TESTE de envio de mensagens...
+[2025-11-18T13:23:18.221Z]  - Testando envio para Gabriel (556392319858@c.us)
+[2025-11-18T13:23:23.306Z]  - ERRO no teste para Gabriel: Request failed with status code 422
+[2025-11-18T13:23:23.306Z]  - Testando envio para Francielly (556392319858@c.us)
+[2025-11-18T13:23:28.326Z]  - ERRO no teste para Francielly: Request failed with status code 422
+[2025-11-18T13:23:28.326Z]  - Testando envio para Erika (556392319858@c.us)
+[2025-11-18T13:23:33.345Z]  - ERRO no teste para Erika: Request failed with status code 422
+[2025-11-18T13:23:33.345Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:28:31.306Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:28:31.321Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:28:33.907Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:28:33.909Z] - Iniciando TESTE de envio de mensagens...
+[2025-11-18T13:28:33.909Z]  - Testando envio para Gabriel (556392319858@c.us)
+[2025-11-18T13:28:34.794Z]  - Testando envio para Francielly (556392319858@c.us)
+[2025-11-18T13:28:35.793Z]  - Testando envio para Erika (556392319858@c.us)
+[2025-11-18T13:28:36.317Z]  - Conexão ao banco de dados fechada.
