@@ -1,0 +1,48 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "3001:3000"
+    depends_on:
+      - db
+      - waha
+    environment:
+      - DB_HOST=db
+      - DB_USER=root
+      - DB_PASS=rootpassword
+      - DB_NAME=db_amigo_secreto
+      - WAHA_URL=http://waha:3000
+      - WAHA_API_KEY=secret123
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: rootpassword
+      MYSQL_DATABASE: db_amigo_secreto
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  waha:
+    image: devlikeapro/waha
+    environment:
+      # Imprime o QR Code no log do container para você escanear na primeira vez
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - WAHA_API_KEY=secret123
+    ports:
+      - "3000:3000"
+    volumes:
+      - waha_data:/app/.wwebjs_auth
+      - waha_cache:/app/.wwebjs_cache
+
+volumes:
+  mysql_data:
+  waha_data:
+  waha_cache:

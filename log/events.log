@@ -1,0 +1,41 @@
+[2025-11-18T12:06:10.698Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:06:10.704Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:14:56.742Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:14:56.757Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:14:59.661Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:14:59.664Z] - Sorteando. . .
+[2025-11-18T12:14:59.664Z]  - 3 pessoas estão participando!
+[2025-11-18T12:14:59.672Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:15:04.580Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:15:04.582Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:15:04.582Z]  - Enviando para: Gabriel (55556392319858@c.us)
+[2025-11-18T12:15:04.608Z] ERRO ao enviar para Gabriel: Request failed with status code 401
+[2025-11-18T12:15:04.608Z]  - Enviando para: Francielly (55556392319858@c.us)
+[2025-11-18T12:15:04.613Z] ERRO ao enviar para Francielly: Request failed with status code 401
+[2025-11-18T12:15:04.613Z]  - Enviando para: Erika (55556392319858@c.us)
+[2025-11-18T12:15:04.617Z] ERRO ao enviar para Erika: Request failed with status code 401
+[2025-11-18T12:15:04.617Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:16:35.454Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:16:35.456Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:16:35.456Z]  - Enviando para: Gabriel (556392319858@c.us)
+[2025-11-18T12:16:35.465Z] ERRO ao enviar para Gabriel: Request failed with status code 401
+[2025-11-18T12:16:35.465Z]  - Enviando para: Francielly (556392319858@c.us)
+[2025-11-18T12:16:35.473Z] ERRO ao enviar para Francielly: Request failed with status code 401
+[2025-11-18T12:16:35.473Z]  - Enviando para: Erika (556392319858@c.us)
+[2025-11-18T12:16:35.480Z] ERRO ao enviar para Erika: Request failed with status code 401
+[2025-11-18T12:16:35.481Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:16:41.446Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:16:41.448Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:16:41.448Z]  - Enviando para: Gabriel (556392319858@c.us)
+[2025-11-18T12:16:41.456Z] ERRO ao enviar para Gabriel: Request failed with status code 401
+[2025-11-18T12:16:41.456Z]  - Enviando para: Francielly (556392319858@c.us)
+[2025-11-18T12:16:41.464Z] ERRO ao enviar para Francielly: Request failed with status code 401
+[2025-11-18T12:16:41.464Z]  - Enviando para: Erika (556392319858@c.us)
+[2025-11-18T12:16:41.474Z] ERRO ao enviar para Erika: Request failed with status code 401
+[2025-11-18T12:16:41.476Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:21:31.800Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:21:31.815Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:21:31.816Z]  - Enviando para: Gabriel (556392319858@c.us)
+[2025-11-18T12:21:33.149Z]  - Enviando para: Francielly (556392319858@c.us)
+[2025-11-18T12:21:34.354Z]  - Enviando para: Erika (556392319858@c.us)
+[2025-11-18T12:21:35.388Z]  - Conexão ao banco de dados fechada.

@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Amigo Secreto Manager</title>
+    <style>
+        body { font-family: sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; background: #f4f4f9; }
+        .card { background: white; padding: 20px; margin-bottom: 20px; border-radius: 8px; box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+        h1 { color: #333; text-align: center; }
+        button { background: #007bff; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; }
+        button:hover { background: #0056b3; }
+        button:disabled { background: #ccc; }
+        .status { margin-top: 10px; font-weight: bold; }
+        .success { color: green; }
+        .error { color: red; }
+    </style>
+</head>
+<body>
+<h1>🎅 Gerenciador de Amigo Secreto</h1>
+
+<div class="card">
+    <h2>1. Carregar Participantes (CSV)</h2>
+    <input type="file" id="csvFile" accept=".csv">
+    <button onclick="uploadCSV()">Enviar CSV</button>
+    <div id="statusUpload" class="status"></div>
+</div>
+
+<div class="card">
+    <h2>2. Realizar Sorteio</h2>
+    <p>Certifique-se de que os participantes já foram carregados.</p>
+    <button onclick="realizarSorteio()">Sortear Agora</button>
+    <div id="statusSorteio" class="status"></div>
+</div>
+
+<div class="card">
+    <h2>3. Enviar Mensagens</h2>
+    <p>Certifique-se de que o WhatsApp está conectado no painel do WAHA.</p>
+    <p><a href="http://localhost:3000/dashboard" target="_blank">Abrir Painel WAHA (Escanear QR)</a></p>
+    <button onclick="enviarMensagens()">Enviar via WhatsApp</button>
+    <div id="statusEnvio" class="status"></div>
+</div>
+
+<script>
+    async function request(url, options, statusId) {
+        const statusEl = document.getElementById(statusId);
+        statusEl.textContent = 'Processando...';
+        statusEl.className = 'status';
+
+        try {
+            const res = await fetch(url, options);
+            const data = await res.json();
+
+            if (res.ok) {
+                statusEl.textContent = data.message || 'Sucesso!';
+                statusEl.className = 'status success';
+            } else {
+                throw new Error(data.error || 'Erro desconhecido');
+            }
+        } catch (err) {
+            statusEl.textContent = 'Erro: ' + err.message;
+            statusEl.className = 'status error';
+        }
+    }
+
+    function uploadCSV() {
+        const fileInput = document.getElementById('csvFile');
+        if(fileInput.files.length === 0) return alert('Selecione um arquivo!');
+
+        const formData = new FormData();
+        formData.append('arquivoCSV', fileInput.files[0]);
+
+        request('/api/participantes', { method: 'POST', body: formData }, 'statusUpload');
+    }
+
+    function realizarSorteio() {
+        request('/api/sortear', { method: 'POST' }, 'statusSorteio');
+    }
+
+    function enviarMensagens() {
+        if(!confirm('Isso enviará mensagens reais para todos os sorteados. Continuar?')) return;
+        request('/api/enviar', { method: 'POST' }, 'statusEnvio');
+    }
+</script>
+</body>
+</html>
