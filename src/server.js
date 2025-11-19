@@ -77,6 +77,37 @@ app.get('/api/participantes/listar', async (req, res) => {
     }
 });
 
+// Rota: Listar Resultado do Sorteio
+app.get('/api/sorteio/listar', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysqlConnector.conectarMySQL();
+        const sql = `
+            SELECT 
+                s.id,
+                p1.id        AS id_participante,
+                p1.nome      AS participante_nome,
+                p1.telefone  AS participante_telefone,
+                p1.grupo     AS participante_grupo,
+                p2.id        AS id_amigo,
+                p2.nome      AS amigo_nome,
+                p2.telefone  AS amigo_telefone,
+                p2.grupo     AS amigo_grupo,
+                s.mensagem_enviada
+            FROM sorteio s
+            JOIN participantes p1 ON p1.id = s.id_participante
+            JOIN participantes p2 ON p2.id = s.id_amigo
+            ORDER BY p1.nome ASC`;
+
+        const resultado = await dbOperations.executarConsulta(connection, sql);
+        res.json(resultado);
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
 // Rota: Adicionar Participante Manualmente
 app.post('/api/participantes/manual', async (req, res) => {
     const { nome, telefone, grupo } = req.body;
