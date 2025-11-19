@@ -1,16 +1,7 @@
 import * as csvReader from './util/csvReader.js';
 import * as mysqlConnector from './database/mysqlConnector.js';
 import * as dbOperations from './database/dbOperations.js';
-
-function formatarTelefone(telefone) {
-    if (!telefone) return null;
-    let num = telefone.replace(/\D/g, ''); // Remove caracteres não numéricos
-    // Se for um número válido (com DDD) e não tiver DDI '55', adiciona.
-    if (num.length >= 10 && !num.startsWith('55')) {
-        num = '55' + num;
-    }
-    return num;
-}
+import { formatarTelefone } from './util/telefone.js';
 
 export async function salvarParticipantes(nome_arquivo) {
     const dadosCSV = await csvReader.lerCSV(nome_arquivo);
@@ -19,24 +10,22 @@ export async function salvarParticipantes(nome_arquivo) {
     } else {
         const connection = await mysqlConnector.conectarMySQL();
         try {
-            await dbOperations.resetarTabela(connection, 'sorteio');
-            await dbOperations.resetarTabela(connection, 'participantes');
+            await dbOperations.executarTransacao(connection, async (trx) => {
+                await dbOperations.resetarTabela(trx, 'sorteio');
+                await dbOperations.resetarTabela(trx, 'participantes');
 
-            for (const participante of dadosCSV) {
-
-                const telefoneFormatado = formatarTelefone(participante.telefone);
-
-                // Cria um novo objeto com o telefone formatado
-                const participanteFormatado = {
-                    ...participante,
-                    telefone: telefoneFormatado
-                };
-
-                await dbOperations.inserir(connection, 'participantes', participanteFormatado);
-            }
+                for (const participante of dadosCSV) {
+                    const telefoneFormatado = formatarTelefone(participante.telefone);
+                    const participanteFormatado = {
+                        ...participante,
+                        telefone: telefoneFormatado
+                    };
+                    await dbOperations.inserir(trx, 'participantes', participanteFormatado);
+                }
+            });
 
             return ' - Dados salvos no banco de dados com sucesso.\n';
-        }catch (error){
+        } catch (error) {
             throw error;
         } finally {
             await mysqlConnector.fecharConexaoMySQL(connection);

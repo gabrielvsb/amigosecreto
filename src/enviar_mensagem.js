@@ -1,16 +1,13 @@
-import axios from 'axios';
 import * as mysqlConnector from './database/mysqlConnector.js';
 import * as dbOperations from './database/dbOperations.js';
 import * as mensagemUtil from "./util/mensagem.js";
 import * as log from './util/log.js';
-
-const WAHA_URL = process.env.WAHA_URL;
-const WAHA_KEY = process.env.WAHA_API_KEY;
+import { sendText, isConfigured } from './services/wahaService.js';
 
 export async function enviarMensagem() {
     const connection = await mysqlConnector.conectarMySQL();
 
-    if (!WAHA_URL || !WAHA_KEY) {
+    if (!isConfigured()) {
         log.gravarLog('ERRO: Configurações do WAHA (URL ou KEY) não encontradas no ambiente.');
         await mysqlConnector.fecharConexaoMySQL(connection);
         return 'Erro de configuração do servidor.';
@@ -36,14 +33,6 @@ export async function enviarMensagem() {
     let enviadas = 0;
     let erros = 0;
 
-    // Configuração dos Headers com a chave de API
-    const config = {
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': WAHA_KEY
-        }
-    };
-
     for (const registro of sorteio) {
         const texto = mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
         // O número já deve ter o 55 no DB (ajustado em salvar_participantes)
@@ -51,17 +40,13 @@ export async function enviarMensagem() {
 
         try {
             log.gravarLog(` - Enviando para: ${registro.nome_participante} (${chatId})`);
-
-            const body = {
-                session: 'default',
-                chatId: chatId,
-                text: texto
-            };
-
-            await axios.post(`${WAHA_URL}/api/sendText`, body, config);
+            await sendText(chatId, texto);
 
             enviadas++;
             await new Promise(resolve => setTimeout(resolve, 1000));
+
+            // Marca como enviada
+            await dbOperations.atualizar(connection, 'sorteio', { mensagem_enviada: 1 }, 'id = ?', [registro.id_sorteio]);
 
         } catch (error) {
             const errorMsg = error.response ?
@@ -89,7 +74,7 @@ export async function enviarTeste() {
         return ' - Não há participantes cadastrados para testar.';
     }
 
-    if (!WAHA_URL || !WAHA_KEY) {
+    if (!isConfigured()) {
         await mysqlConnector.fecharConexaoMySQL(connection);
         throw new Error('Configurações do WAHA ausentes.');
     }
@@ -99,13 +84,6 @@ export async function enviarTeste() {
     let enviados = 0;
     let erros = 0;
 
-    const config = {
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': WAHA_KEY
-        }
-    };
-
     for (const p of participantes) {
         // O número já deve ter o 55 no DB (ajustado em salvar_participantes)
         let telefone = p.telefone.replace(/\D/g, '');
@@ -114,18 +92,10 @@ export async function enviarTeste() {
         // Mensagem de texto simples instruindo a resposta manual
         const mensagemTeste = `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá *${p.nome}*, este é um teste de verificação de número. Por favor, *responda OK* para confirmar que seu número está correto no sistema.`;
 
-        // Payload de texto simples
-        const payload = {
-            session: 'default',
-            chatId: chatId,
-            text: mensagemTeste,
-        };
-
 
         try {
             log.gravarLog(` - Testando envio de TEXTO SIMPLES para ${p.nome} (${chatId})`);
-
-            await axios.post(`${WAHA_URL}/api/sendText`, payload, config);
+            await sendText(chatId, mensagemTeste);
 
             enviados++;
             await new Promise(r => setTimeout(r, 500));

@@ -9,7 +9,9 @@ import * as whatsapp from './enviar_mensagem.js';
 import * as mysqlConnector from './database/mysqlConnector.js';
 import * as dbOperations from './database/dbOperations.js';
 import 'dotenv/config'; // Garante que as variáveis de ambiente sejam carregadas
-import axios from 'axios'; // Importa axios para a resposta automática
+// axios removido: envio de mensagens via webhook agora está em services/wahaService
+import webhookRoutes from './routes/webhookRoutes.js';
+import { formatarTelefone } from './util/telefone.js';
 
 // Configurações básicas
 const __filename = fileURLToPath(import.meta.url);
@@ -22,34 +24,8 @@ app.use(express.json());
 // Serve os arquivos estáticos (o frontend) da pasta public
 app.use(express.static(path.join(__dirname, '../public')));
 
-// Variáveis de Ambiente para resposta automática
-const WAHA_URL = process.env.WAHA_URL;
-const WAHA_KEY = process.env.WAHA_API_KEY;
-
-// Função auxiliar para enviar mensagem de volta via WAHA
-async function sendWahaMessage(chatId, text) {
-    if (!WAHA_URL || !WAHA_KEY) {
-        console.error('ERRO: Configurações do WAHA (URL ou KEY) ausentes para resposta.');
-        return;
-    }
-    const config = {
-        headers: {
-            'Content-Type': 'application/json',
-            'X-Api-Key': WAHA_KEY
-        }
-    };
-    const body = {
-        session: 'default',
-        chatId: chatId,
-        text: text
-    };
-    try {
-        await axios.post(`${WAHA_URL}/api/sendText`, body, config);
-        console.log(`🤖 Resposta automática enviada para ${chatId}.`);
-    } catch (error) {
-        console.error(`ERRO ao enviar resposta automática para ${chatId}:`, error.message);
-    }
-}
+// Rotas modulares
+app.use('/api', webhookRoutes);
 
 // --- ROTAS DE FLUXO PRINCIPAL ---
 
@@ -113,16 +89,6 @@ app.post('/api/participantes/manual', async (req, res) => {
     try {
         connection = await mysqlConnector.conectarMySQL();
 
-        // Função de formatação para garantir o 55
-        function formatarTelefone(telefone) {
-            if (!telefone) return null;
-            let num = telefone.replace(/\D/g, '');
-            if (num.length >= 10 && !num.startsWith('55')) {
-                num = '55' + num;
-            }
-            return num;
-        }
-
         const telefoneFormatado = formatarTelefone(telefone);
         if (!telefoneFormatado) {
             return res.status(400).json({ error: 'Telefone inválido após formatação.' });
@@ -163,74 +129,27 @@ app.post('/api/testar', async (req, res) => {
     }
 });
 
-// Rota: Receber mensagens do WhatsApp (Webhook)
-app.post('/api/webhook', async (req, res) => {
-    const payload = req.body;
-    let connection;
-
-    if (payload.event === 'message') {
-        const mensagem = payload.payload;
-
-        // Ignora mensagens enviadas por você mesmo ou sem corpo
-        if (mensagem.fromMe || !mensagem.body) return res.status(200).send('OK');
-
-        // O WAHA envia o número no formato 55xxxxxxxxxxx@c.us. Removemos o @c.us e só os dígitos.
-        const telefone_db = mensagem.from.split('@')[0].replace(/\D/g, '');
-
-        // Normaliza o texto para aceitar 'OK' (case-insensitive)
-        const texto = mensagem.body.trim().toUpperCase();
-        const nomeContato = mensagem._data?.notifyName || 'Desconhecido';
-
-        console.log(`📩 NOVA MENSAGEM RECEBIDA!`);
-        console.log(`   De: ${nomeContato} (Telefone DB: ${telefone_db})`);
-        console.log(`   Dizendo: "${texto}"`);
-
-        // LÓGICA DE CONFIRMAÇÃO DE TESTE: Aceita 'OK' (já normalizado para maiúsculas)
-        if (texto === 'OK') {
-            try {
-                connection = await mysqlConnector.conectarMySQL();
-
-                // 1. Verifica quantos participantes PENDENTES têm este número
-                const querySelect = 'SELECT COUNT(id) AS count FROM participantes WHERE telefone = ? AND confirmacao_recebimento = 0';
-                // Executa a consulta e pega o array de rows (Ex: [{count: 1}])
-                const resultRows = await dbOperations.executarConsulta(connection, querySelect, [telefone_db]);
-
-                // FIX: Acessa a propriedade 'count' da primeira linha ou usa 0 se for undefined
-                const naoConfirmados = resultRows[0]?.count || 0;
-                const chatId = mensagem.from;
-
-                if (naoConfirmados > 0) {
-                    // 2. Atualiza TODOS os participantes com este telefone
-                    const queryUpdate = 'UPDATE participantes SET confirmacao_recebimento = 1 WHERE telefone = ?';
-                    // Usamos connection.query para obter o changedRows
-                    const [updateResult] = await connection.query(queryUpdate, [telefone_db]);
-
-                    const totalAtualizado = updateResult.changedRows;
-                    console.log(`✅ CONFIRMAÇÃO SALVA: ${totalAtualizado} registro(s) confirmado(s) para o número ${telefone_db}.`);
-
-                    // 3. Envia a mensagem de confirmação para o usuário
-                    const mensagemResposta = `*Participação confirmada!* Em breve o sorteio será realizado e você receberá ${totalAtualizado > 1 ? 'os nomes dos seus amigos secretos' : 'o nome do seu amigo secreto'}.`;
-
-                    await sendWahaMessage(chatId, mensagemResposta);
-
-                } else {
-                    console.log(`⚠️ NENHUM REGISTRO PENDENTE encontrado para o número: ${telefone_db}.`);
-                }
-
-            } catch (error) {
-                console.error('Erro ao processar confirmação no DB:', error);
-
-            } finally {
-                if(connection) await mysqlConnector.fecharConexaoMySQL(connection);
-            }
-        }
-    }
-
-    res.status(200).send('OK');
-});
+// Rota: Receber mensagens do WhatsApp (Webhook) agora em routes/webhookRoutes
 
 
 const PORT = process.env.PORT || 3000;
-app.listen(PORT, () => {
+const server = app.listen(PORT, () => {
     console.log(`Servidor rodando na porta ${PORT}`);
 });
+
+// Encerramento gracioso: fecha o pool ao receber sinais do SO
+const shutdown = async (signal) => {
+    try {
+        console.log(`\nRecebido ${signal}. Encerrando servidor...`);
+        server.close(async () => {
+            await mysqlConnector.encerrarPool();
+            process.exit(0);
+        });
+    } catch (e) {
+        console.error('Erro ao encerrar:', e);
+        process.exit(1);
+    }
+};
+
+process.on('SIGINT', () => shutdown('SIGINT'));
+process.on('SIGTERM', () => shutdown('SIGTERM'));
