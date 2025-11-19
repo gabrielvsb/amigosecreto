@@ -1,0 +1,54 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "3001:${PORT:-3000}"
+    depends_on:
+      - db
+      - waha
+    # O Docker lerá automaticamente do arquivo .env na mesma pasta
+    environment:
+      - DB_HOST=${DB_HOST}
+      - DB_USER=${DB_USER}
+      - DB_PASS=${DB_PASS}
+      - DB_NAME=${DB_NAME}
+      - WAHA_URL=${WAHA_URL}
+      - WAHA_API_KEY=${WAHA_API_KEY}
+    volumes:
+      - .:/app
+      - /app/node_modules
+
+  db:
+    image: mysql:5.7
+    environment:
+      MYSQL_ROOT_PASSWORD: ${DB_PASS}
+      MYSQL_DATABASE: ${DB_NAME}
+    ports:
+      - "3307:3306"
+    volumes:
+      - mysql_data:/var/lib/mysql
+      - ./init.sql:/docker-entrypoint-initdb.d/init.sql
+
+  waha:
+    image: devlikeapro/waha
+    environment:
+      - WHATSAPP_DEFAULT_ENGINE=WEBJS
+      - WAHA_API_KEY=${WAHA_API_KEY}
+      - WAHA_PRINT_QR=False
+      - WAHA_DASHBOARD_USERNAME=${WAHA_DASHBOARD_USERNAME}
+      - WAHA_DASHBOARD_PASSWORD=${WAHA_DASHBOARD_PASSWORD}
+      - WHATSAPP_HOOK_URL=http://api:3000/api/webhook
+      - WHATSAPP_HOOK_EVENTS=message
+      - WHATSAPP_RESTART_ALL_SESSIONS=True
+    ports:
+      - "3000:3000"
+    volumes:
+      - waha_data:/app/.wwebjs_auth
+      - waha_cache:/app/.wwebjs_cache
+
+volumes:
+  mysql_data:
+  waha_data:
+  waha_cache:

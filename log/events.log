@@ -1,0 +1,198 @@
+[2025-11-18T12:06:10.698Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:06:10.704Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:14:56.742Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:14:56.757Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:14:59.661Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:14:59.664Z] - Sorteando. . .
+[2025-11-18T12:14:59.664Z]  - 3 pessoas estão participando!
+[2025-11-18T12:14:59.672Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:15:04.580Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:15:04.582Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:15:04.582Z]  - Enviando para: Gabriel (55556392319858@c.us)
+[2025-11-18T12:15:04.608Z] ERRO ao enviar para Gabriel: Request failed with status code 401
+[2025-11-18T12:15:04.608Z]  - Enviando para: Francielly (55556392319858@c.us)
+[2025-11-18T12:15:04.613Z] ERRO ao enviar para Francielly: Request failed with status code 401
+[2025-11-18T12:15:04.613Z]  - Enviando para: Erika (55556392319858@c.us)
+[2025-11-18T12:15:04.617Z] ERRO ao enviar para Erika: Request failed with status code 401
+[2025-11-18T12:15:04.617Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:16:35.454Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:16:35.456Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:16:35.456Z]  - Enviando para: Gabriel (556392319858@c.us)
+[2025-11-18T12:16:35.465Z] ERRO ao enviar para Gabriel: Request failed with status code 401
+[2025-11-18T12:16:35.465Z]  - Enviando para: Francielly (556392319858@c.us)
+[2025-11-18T12:16:35.473Z] ERRO ao enviar para Francielly: Request failed with status code 401
+[2025-11-18T12:16:35.473Z]  - Enviando para: Erika (556392319858@c.us)
+[2025-11-18T12:16:35.480Z] ERRO ao enviar para Erika: Request failed with status code 401
+[2025-11-18T12:16:35.481Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:16:41.446Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:16:41.448Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:16:41.448Z]  - Enviando para: Gabriel (556392319858@c.us)
+[2025-11-18T12:16:41.456Z] ERRO ao enviar para Gabriel: Request failed with status code 401
+[2025-11-18T12:16:41.456Z]  - Enviando para: Francielly (556392319858@c.us)
+[2025-11-18T12:16:41.464Z] ERRO ao enviar para Francielly: Request failed with status code 401
+[2025-11-18T12:16:41.464Z]  - Enviando para: Erika (556392319858@c.us)
+[2025-11-18T12:16:41.474Z] ERRO ao enviar para Erika: Request failed with status code 401
+[2025-11-18T12:16:41.476Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T12:21:31.800Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T12:21:31.815Z] - Iniciando envio de 3 mensagens via WAHA...
+[2025-11-18T12:21:31.816Z]  - Enviando para: Gabriel (556392319858@c.us)
+[2025-11-18T12:21:33.149Z]  - Enviando para: Francielly (556392319858@c.us)
+[2025-11-18T12:21:34.354Z]  - Enviando para: Erika (556392319858@c.us)
+[2025-11-18T12:21:35.388Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:09:17.638Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:09:17.662Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:23:04.162Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:23:04.188Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:23:18.217Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:23:18.221Z] - Iniciando TESTE de envio de mensagens...
+[2025-11-18T13:23:18.221Z]  - Testando envio para Gabriel (556392319858@c.us)
+[2025-11-18T13:23:23.306Z]  - ERRO no teste para Gabriel: Request failed with status code 422
+[2025-11-18T13:23:23.306Z]  - Testando envio para Francielly (556392319858@c.us)
+[2025-11-18T13:23:28.326Z]  - ERRO no teste para Francielly: Request failed with status code 422
+[2025-11-18T13:23:28.326Z]  - Testando envio para Erika (556392319858@c.us)
+[2025-11-18T13:23:33.345Z]  - ERRO no teste para Erika: Request failed with status code 422
+[2025-11-18T13:23:33.345Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:28:31.306Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:28:31.321Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T13:28:33.907Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T13:28:33.909Z] - Iniciando TESTE de envio de mensagens...
+[2025-11-18T13:28:33.909Z]  - Testando envio para Gabriel (556392319858@c.us)
+[2025-11-18T13:28:34.794Z]  - Testando envio para Francielly (556392319858@c.us)
+[2025-11-18T13:28:35.793Z]  - Testando envio para Erika (556392319858@c.us)
+[2025-11-18T13:28:36.317Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:23:48.553Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:23:48.574Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:29:02.141Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:29:02.157Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:29:04.977Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:29:04.979Z] - Iniciando TESTE de envio de mensagens...
+[2025-11-18T20:29:04.979Z]  - Testando envio para Gabriel (556392319858@c.us)
+[2025-11-18T20:29:05.717Z]  - Testando envio para Francielly (556392319858@c.us)
+[2025-11-18T20:29:06.540Z]  - Testando envio para Erika (556392319858@c.us)
+[2025-11-18T20:29:07.208Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:30:37.030Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:30:37.033Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:31:13.227Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:31:13.254Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:31:13.285Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:31:13.287Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:31:18.434Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:31:18.436Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:31:51.934Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:31:51.951Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:31:54.558Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:31:54.562Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:32:01.901Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:32:01.903Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:39:13.726Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:39:13.739Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:39:18.919Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:39:18.921Z] - Iniciando TESTE de envio de mensagens com botão...
+[2025-11-18T20:39:18.921Z]  - Testando envio de BOTÃO para Gabriel (556392319858@c.us)
+[2025-11-18T20:39:18.968Z]  - ERRO no teste para Gabriel: Status 400 - {"message":["buttons.0.text must be a string"],"error":"Bad Request","statusCode":400}
+[2025-11-18T20:39:18.968Z]  - Testando envio de BOTÃO para Francielly (556392319858@c.us)
+[2025-11-18T20:39:18.980Z]  - ERRO no teste para Francielly: Status 400 - {"message":["buttons.0.text must be a string"],"error":"Bad Request","statusCode":400}
+[2025-11-18T20:39:18.981Z]  - Testando envio de BOTÃO para Erika (556392319858@c.us)
+[2025-11-18T20:39:18.987Z]  - ERRO no teste para Erika: Status 400 - {"message":["buttons.0.text must be a string"],"error":"Bad Request","statusCode":400}
+[2025-11-18T20:39:18.987Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:42:07.811Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:42:07.822Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:42:10.054Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:42:10.056Z] - Iniciando TESTE de envio de mensagens com botão...
+[2025-11-18T20:42:10.057Z]  - Testando envio de BOTÃO para Gabriel (556392319858@c.us)
+[2025-11-18T20:42:10.090Z]  - ERRO no teste para Gabriel: Status 501 - {"message":"The method is not implemented by 'WEBJS' engine. Check the docs and try another engine: https://waha.devlike.pro/","error":"Not Implemented","statusCode":501}
+[2025-11-18T20:42:10.091Z]  - Testando envio de BOTÃO para Francielly (556392319858@c.us)
+[2025-11-18T20:42:10.103Z]  - ERRO no teste para Francielly: Status 501 - {"message":"The method is not implemented by 'WEBJS' engine. Check the docs and try another engine: https://waha.devlike.pro/","error":"Not Implemented","statusCode":501}
+[2025-11-18T20:42:10.103Z]  - Testando envio de BOTÃO para Erika (556392319858@c.us)
+[2025-11-18T20:42:10.113Z]  - ERRO no teste para Erika: Status 501 - {"message":"The method is not implemented by 'WEBJS' engine. Check the docs and try another engine: https://waha.devlike.pro/","error":"Not Implemented","statusCode":501}
+[2025-11-18T20:42:10.114Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:53:46.324Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:53:46.334Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:53:48.352Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:53:48.354Z]  - Testando envio de TEXTO SIMPLES para Gabriel (556392319858@c.us)
+[2025-11-18T20:53:48.354Z] - Iniciando TESTE de envio de texto simples...
+[2025-11-18T20:53:48.392Z]  - ERRO no teste para Gabriel: Status 400 - {"message":["replyTo should not be empty","replyTo must be a string"],"error":"Bad Request","statusCode":400}
+[2025-11-18T20:53:48.392Z]  - Testando envio de TEXTO SIMPLES para Francielly (556392319858@c.us)
+[2025-11-18T20:53:48.404Z]  - ERRO no teste para Francielly: Status 400 - {"message":["replyTo should not be empty","replyTo must be a string"],"error":"Bad Request","statusCode":400}
+[2025-11-18T20:53:48.404Z]  - Testando envio de TEXTO SIMPLES para Erika (556392319858@c.us)
+[2025-11-18T20:53:48.413Z]  - ERRO no teste para Erika: Status 400 - {"message":["replyTo should not be empty","replyTo must be a string"],"error":"Bad Request","statusCode":400}
+[2025-11-18T20:53:48.413Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:54:26.884Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:54:26.892Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T20:54:28.899Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T20:54:28.901Z] - Iniciando TESTE de envio de texto simples...
+[2025-11-18T20:54:28.901Z]  - Testando envio de TEXTO SIMPLES para Gabriel (556392319858@c.us)
+[2025-11-18T20:54:28.940Z]  - ERRO no teste para Gabriel: Status 422 - {"message":"The feature is available only in Plus version for 'WEBJS' engine. Check this out: https://waha.devlike.pro/","error":"Unprocessable Entity","statusCode":422}
+[2025-11-18T20:54:28.940Z]  - Testando envio de TEXTO SIMPLES para Francielly (556392319858@c.us)
+[2025-11-18T20:54:28.951Z]  - ERRO no teste para Francielly: Status 422 - {"message":"The feature is available only in Plus version for 'WEBJS' engine. Check this out: https://waha.devlike.pro/","error":"Unprocessable Entity","statusCode":422}
+[2025-11-18T20:54:28.951Z]  - Testando envio de TEXTO SIMPLES para Erika (556392319858@c.us)
+[2025-11-18T20:54:28.959Z]  - ERRO no teste para Erika: Status 422 - {"message":"The feature is available only in Plus version for 'WEBJS' engine. Check this out: https://waha.devlike.pro/","error":"Unprocessable Entity","statusCode":422}
+[2025-11-18T20:54:28.960Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T21:03:19.645Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T21:03:19.654Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T21:03:22.093Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T21:03:22.095Z] - Iniciando TESTE de envio de texto simples...
+[2025-11-18T21:03:22.095Z]  - Testando envio de TEXTO SIMPLES para Gabriel (556392319858@c.us)
+[2025-11-18T21:03:22.129Z]  - ERRO no teste para Gabriel: Status 501 - {"message":"The method is not implemented by 'WEBJS' engine. Check the docs and try another engine: https://waha.devlike.pro/","error":"Not Implemented","statusCode":501}
+[2025-11-18T21:03:22.130Z]  - Testando envio de TEXTO SIMPLES para Francielly (556392319858@c.us)
+[2025-11-18T21:03:22.136Z]  - ERRO no teste para Francielly: Status 501 - {"message":"The method is not implemented by 'WEBJS' engine. Check the docs and try another engine: https://waha.devlike.pro/","error":"Not Implemented","statusCode":501}
+[2025-11-18T21:03:22.136Z]  - Testando envio de TEXTO SIMPLES para Erika (556392319858@c.us)
+[2025-11-18T21:03:22.142Z]  - ERRO no teste para Erika: Status 501 - {"message":"The method is not implemented by 'WEBJS' engine. Check the docs and try another engine: https://waha.devlike.pro/","error":"Not Implemented","statusCode":501}
+[2025-11-18T21:03:22.142Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T21:15:23.447Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T21:15:23.455Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T21:15:25.156Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T21:15:25.158Z] - Iniciando TESTE de envio de texto simples...
+[2025-11-18T21:15:25.158Z]  - Testando envio de TEXTO SIMPLES para Gabriel (556392319858@c.us)
+[2025-11-18T21:15:25.747Z]  - Testando envio de TEXTO SIMPLES para Francielly (556392319858@c.us)
+[2025-11-18T21:15:26.296Z]  - Testando envio de TEXTO SIMPLES para Erika (556392319858@c.us)
+[2025-11-18T21:15:26.846Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:22:07.449Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:22:07.463Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:22:13.097Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:22:13.123Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:22:15.059Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:22:15.062Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:22:22.479Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:22:22.481Z] - Iniciando TESTE de envio de texto simples...
+[2025-11-18T22:22:22.481Z]  - Testando envio de TEXTO SIMPLES para Gabriel (556392319858@c.us)
+[2025-11-18T22:22:27.574Z]  - ERRO no teste para Gabriel: Status 422 - {"error":"Session status is not as expected. Try again later or restart the session","session":"default","status":"STOPPED","expected":["WORKING"]}
+[2025-11-18T22:22:27.575Z]  - Testando envio de TEXTO SIMPLES para Francielly (556392319858@c.us)
+[2025-11-18T22:22:32.594Z]  - ERRO no teste para Francielly: Status 422 - {"error":"Session status is not as expected. Try again later or restart the session","session":"default","status":"STOPPED","expected":["WORKING"]}
+[2025-11-18T22:22:32.594Z]  - Testando envio de TEXTO SIMPLES para Erika (556392319858@c.us)
+[2025-11-18T22:22:37.609Z]  - ERRO no teste para Erika: Status 422 - {"error":"Session status is not as expected. Try again later or restart the session","session":"default","status":"STOPPED","expected":["WORKING"]}
+[2025-11-18T22:22:37.609Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:25:08.396Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:25:08.398Z] - Iniciando TESTE de envio de texto simples...
+[2025-11-18T22:25:08.398Z]  - Testando envio de TEXTO SIMPLES para Gabriel (556392319858@c.us)
+[2025-11-18T22:25:11.338Z]  - Testando envio de TEXTO SIMPLES para Francielly (556392319858@c.us)
+[2025-11-18T22:25:13.423Z]  - Testando envio de TEXTO SIMPLES para Erika (556392319858@c.us)
+[2025-11-18T22:25:14.127Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:26:05.896Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:26:05.908Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:34:24.669Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:34:24.687Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:34:26.141Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:34:26.149Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:36:37.337Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:36:37.340Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:36:39.953Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:36:39.956Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:40:08.129Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:40:08.134Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T22:40:26.512Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T22:40:26.515Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T23:08:21.849Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T23:08:21.872Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T23:08:23.470Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T23:08:23.475Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T23:08:47.243Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T23:08:47.250Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T23:10:55.660Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T23:10:56.088Z]  - Conexão ao banco de dados fechada.
+[2025-11-18T23:14:06.664Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-18T23:14:06.668Z]  - Conexão ao banco de dados fechada.
+[2025-11-19T01:17:45.664Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-19T01:17:45.667Z]  - Conexão ao banco de dados fechada.
+[2025-11-19T01:17:47.834Z]  - Conexão ao banco de dados estabelecida.
+[2025-11-19T01:17:47.837Z]  - Conexão ao banco de dados fechada.
