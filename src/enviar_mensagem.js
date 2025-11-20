@@ -3,6 +3,7 @@ import * as dbOperations from './database/dbOperations.js';
 import * as mensagemUtil from "./util/mensagem.js";
 import * as log from './util/log.js';
 import { sendText, isConfigured } from './services/wahaService.js';
+import { getTestMessageTemplate, renderTemplate, getDrawMessageTemplate } from './config/appConfig.js';
 
 export async function enviarMensagem() {
     const connection = await mysqlConnector.conectarMySQL();
@@ -33,8 +34,21 @@ export async function enviarMensagem() {
     let enviadas = 0;
     let erros = 0;
 
+    const drawTemplate = getDrawMessageTemplate();
+
     for (const registro of sorteio) {
-        const texto = mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
+        // Monta a mensagem usando o template configurável, com fallback para util
+        const agora = new Date();
+        const ctx = {
+            participante: registro.nome_participante,
+            amigo: registro.nome_amigo,
+            data: agora.toLocaleDateString('pt-BR'),
+            hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        const renderizada = renderTemplate(drawTemplate, ctx);
+        const texto = (renderizada && renderizada.trim() !== '')
+            ? renderizada
+            : mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
         // O número já deve ter o 55 no DB (ajustado em salvar_participantes)
         const chatId = `${registro.telefone.replace(/\D/g, '')}@c.us`;
 
@@ -67,7 +81,12 @@ export async function enviarMensagem() {
 export async function enviarTeste() {
     const connection = await mysqlConnector.conectarMySQL();
 
-    const participantes = await dbOperations.executarConsulta(connection, 'SELECT * FROM participantes');
+    // Envia teste apenas uma vez por TELEFONE para números PENDENTES de confirmação
+    // Agrupa por telefone para evitar envios duplicados quando há mais de um participante com o mesmo número
+    const participantes = await dbOperations.executarConsulta(
+        connection,
+        'SELECT MIN(id) AS id, MIN(nome) AS nome, telefone\n         FROM participantes\n         WHERE confirmacao_recebimento = 0 AND telefone IS NOT NULL\n         GROUP BY telefone'
+    );
 
     if (participantes.length <= 0) {
         await mysqlConnector.fecharConexaoMySQL(connection);
@@ -79,18 +98,31 @@ export async function enviarTeste() {
         throw new Error('Configurações do WAHA ausentes.');
     }
 
-    log.gravarLog('- Iniciando TESTE de envio de texto simples...');
+    log.gravarLog('- Iniciando TESTE de envio de texto simples (apenas pendentes)...');
 
     let enviados = 0;
     let erros = 0;
+
+    const template = getTestMessageTemplate();
 
     for (const p of participantes) {
         // O número já deve ter o 55 no DB (ajustado em salvar_participantes)
         let telefone = p.telefone.replace(/\D/g, '');
         const chatId = `${telefone}@c.us`;
 
-        // Mensagem de texto simples instruindo a resposta manual
-        const mensagemTeste = `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá *${p.nome}*, este é um teste de verificação de número. Por favor, *responda OK* para confirmar que seu número está correto no sistema.`;
+        // Mensagem de texto simples com template parametrizado
+        const agora = new Date();
+        const context = {
+            nome: p.nome,
+            telefone: telefone,
+            data: agora.toLocaleDateString('pt-BR'),
+            hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        const mensagemRenderizada = renderTemplate(template, context);
+        // Fallback de segurança se vier vazio por algum motivo
+        const mensagemTeste = (mensagemRenderizada && mensagemRenderizada.trim() !== '')
+            ? mensagemRenderizada
+            : `🤖 *Teste de Conexão - Amigo Secreto*\n\nOlá *${p.nome}*, este é um teste de verificação de número. Por favor, *responda OK* para confirmar que seu número está correto no sistema.`;
 
 
         try {

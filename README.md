@@ -122,8 +122,20 @@ No card “Envio”, há um link para o painel do WAHA (dashboard) para leitura 
 #### Logs
 - As ações registram mensagens em log/events.log. Em caso de problemas, consulte este arquivo.
 
-#### Customizando a mensagem
-- Edite src/util/mensagem.js para alterar o texto enviado aos participantes.
+#### Customizando as mensagens
+- Mensagem OFICIAL de sorteio (com o nome do amigo):
+  - No frontend (página principal), use o card "Mensagem do Sorteio (Template Oficial)" para editar o texto enviado no botão "Enviar Mensagens".
+  - Placeholders disponíveis: {{participante}}, {{amigo}}, {{data}}, {{hora}}.
+  - Alternativamente, via API:
+    - GET /api/config/draw-message → retorna { template, placeholders }
+    - PUT /api/config/draw-message com body { template: "..." } → salva o template
+  - Observação: existe um fallback para o texto legado em src/util/mensagem.js caso o template esteja vazio.
+- Mensagem de TESTE (disparo de verificação):
+  - No frontend (página principal), use o card "Mensagem de Teste (Template)" para editar o texto do teste com variáveis.
+  - Placeholders disponíveis: {{nome}}, {{telefone}}, {{data}}, {{hora}}.
+  - Alternativamente, via API:
+    - GET /api/config/test-message → retorna { template, placeholders }
+    - PUT /api/config/test-message com body { template: "..." } → salva o template
 
 #### Banco de dados
 - Script de criação de tabelas: init.sql

@@ -1,0 +1,4 @@
+{
+  "testMessageTemplate": "🤖 *Teste de Conexão - Amigo Secreto* \n\nOlá, este é um teste de verificação de número. Por favor, *responda OK* para confirmar que seu número está correto no sistema.",
+  "drawMessageTemplate": "*AMIGO SECRETO 2025*\n\nOlá *{{participante}}*, o seu amigo secreto é: {{amigo}}. \n\n*Essa é uma mensagem automática*"
+}

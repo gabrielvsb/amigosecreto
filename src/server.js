@@ -12,6 +12,7 @@ import 'dotenv/config'; // Garante que as variáveis de ambiente sejam carregada
 // axios removido: envio de mensagens via webhook agora está em services/wahaService
 import webhookRoutes from './routes/webhookRoutes.js';
 import { formatarTelefone } from './util/telefone.js';
+import { getTestMessageTemplate, setTestMessageTemplate, getDrawMessageTemplate, setDrawMessageTemplate } from './config/appConfig.js';
 
 // Configurações básicas
 const __filename = fileURLToPath(import.meta.url);
@@ -77,6 +78,88 @@ app.get('/api/participantes/listar', async (req, res) => {
     }
 });
 
+// Rota: Atualizar Participante (editar nome, telefone e grupo)
+app.put('/api/participantes/:id', async (req, res) => {
+    let connection;
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ error: 'ID inválido.' });
+        }
+
+        let { nome, telefone, grupo } = req.body || {};
+
+        const setParams = {};
+        if (typeof nome === 'string' && nome.trim() !== '') setParams.nome = nome.trim();
+        if (typeof grupo === 'string') setParams.grupo = grupo.trim() === '' ? null : grupo.trim();
+        if (typeof telefone === 'string') {
+            const telFormatado = formatarTelefone(telefone);
+            if (!telFormatado) {
+                return res.status(400).json({ error: 'Telefone inválido após formatação.' });
+            }
+            setParams.telefone = telFormatado;
+        }
+
+        if (Object.keys(setParams).length === 0) {
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+        }
+
+        connection = await mysqlConnector.conectarMySQL();
+        // Se o telefone for informado, verificar se mudou para zerar a confirmação
+        if (setParams.telefone) {
+            const atualRows = await dbOperations.executarConsulta(connection, 'SELECT telefone FROM participantes WHERE id = ?', [id]);
+            if (atualRows.length === 0) {
+                return res.status(404).json({ error: 'Participante não encontrado.' });
+            }
+            const telefoneAtual = (atualRows[0].telefone || '').toString();
+            if (telefoneAtual !== setParams.telefone) {
+                setParams.confirmacao_recebimento = 0; // volta para pendente
+            }
+        }
+
+        const result = await dbOperations.atualizar(connection, 'participantes', setParams, 'id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Participante não encontrado.' });
+        }
+        res.json({ message: 'Participante atualizado com sucesso.' });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
+// Rota: Listar Resultado do Sorteio
+app.get('/api/sorteio/listar', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysqlConnector.conectarMySQL();
+        const sql = `
+            SELECT 
+                s.id,
+                p1.id        AS id_participante,
+                p1.nome      AS participante_nome,
+                p1.telefone  AS participante_telefone,
+                p1.grupo     AS participante_grupo,
+                p2.id        AS id_amigo,
+                p2.nome      AS amigo_nome,
+                p2.telefone  AS amigo_telefone,
+                p2.grupo     AS amigo_grupo,
+                s.mensagem_enviada
+            FROM sorteio s
+            JOIN participantes p1 ON p1.id = s.id_participante
+            JOIN participantes p2 ON p2.id = s.id_amigo
+            ORDER BY p1.nome ASC`;
+
+        const resultado = await dbOperations.executarConsulta(connection, sql);
+        res.json(resultado);
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
 // Rota: Adicionar Participante Manualmente
 app.post('/api/participantes/manual', async (req, res) => {
     const { nome, telefone, grupo } = req.body;
@@ -124,6 +207,64 @@ app.post('/api/testar', async (req, res) => {
     try {
         const resultado = await whatsapp.enviarTeste();
         res.json({ message: resultado });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// --- ROTAS DE CONFIGURAÇÃO ---
+
+// Obter template da mensagem de teste
+app.get('/api/config/test-message', async (req, res) => {
+    try {
+        const template = getTestMessageTemplate();
+        res.json({
+            template,
+            placeholders: ['{{nome}}', '{{telefone}}', '{{data}}', '{{hora}}']
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Atualizar template da mensagem de teste
+app.put('/api/config/test-message', async (req, res) => {
+    try {
+        const { template } = req.body || {};
+        if (typeof template !== 'string' || template.trim() === '') {
+            return res.status(400).json({ error: 'Template inválido.' });
+        }
+        const ok = setTestMessageTemplate(template);
+        if (!ok) return res.status(500).json({ error: 'Falha ao salvar o template.' });
+        res.json({ message: 'Template de mensagem de teste salvo com sucesso.' });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Obter template da mensagem OFICIAL do sorteio
+app.get('/api/config/draw-message', async (req, res) => {
+    try {
+        const template = getDrawMessageTemplate();
+        res.json({
+            template,
+            placeholders: ['{{participante}}', '{{amigo}}', '{{data}}', '{{hora}}']
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Atualizar template da mensagem OFICIAL do sorteio
+app.put('/api/config/draw-message', async (req, res) => {
+    try {
+        const { template } = req.body || {};
+        if (typeof template !== 'string' || template.trim() === '') {
+            return res.status(400).json({ error: 'Template inválido.' });
+        }
+        const ok = setDrawMessageTemplate(template);
+        if (!ok) return res.status(500).json({ error: 'Falha ao salvar o template.' });
+        res.json({ message: 'Template de mensagem do sorteio salvo com sucesso.' });
     } catch (error) {
         res.status(500).json({ error: error.toString() });
     }

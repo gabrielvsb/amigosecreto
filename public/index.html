@@ -136,6 +136,81 @@
         </div>
     </div>
 
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-8">
+            <div class="card main-card p-2 border-0" style="background-color: rgba(255,255,255,0.6);">
+                <div class="card-body d-flex justify-content-between align-items-center">
+                    <div class="d-flex align-items-center">
+                        <div class="text-warning fs-3 me-3"><i class="fa-solid fa-gift"></i></div>
+                        <div>
+                            <h5 class="card-title mb-0 text-dark">Visualizar Resultado do Sorteio</h5>
+                            <p class="card-text text-muted small mb-0">Veja os pares sorteados (Participante → Amigo Secreto).</p>
+                        </div>
+                    </div>
+                    <button data-bs-toggle="modal" data-bs-target="#modalSorteio" onclick="carregarSorteio()" class="btn btn-warning text-dark btn-sm px-4 py-2" style="border-radius: 20px;">
+                        <i class="fa-solid fa-table-list me-2"></i> Ver Tabela
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Configurar Mensagem de Teste -->
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-8">
+            <div class="card main-card p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="text-primary fs-3 me-3"><i class="fa-solid fa-pen-to-square"></i></div>
+                        <div>
+                            <h5 class="card-title mb-0">Mensagem de Teste (Template)</h5>
+                            <p class="card-text text-muted small mb-0">Edite o texto enviado no botão "Testar Disparos". Use variáveis: <code>{{nome}}</code>, <code>{{telefone}}</code>, <code>{{data}}</code>, <code>{{hora}}</code>.</p>
+                        </div>
+                    </div>
+
+                    <textarea id="testTemplate" class="form-control" rows="5" placeholder="Digite o template da mensagem de teste..."></textarea>
+
+                    <div class="d-flex justify-content-end mt-3 gap-2">
+                        <button id="btnReloadTemplate" class="btn btn-outline-secondary btn-sm" title="Recarregar" onclick="loadTestTemplate()">
+                            <i class="fa-solid fa-rotate me-1"></i> Recarregar
+                        </button>
+                        <button id="btnSaveTemplate" class="btn btn-primary btn-sm" onclick="saveTestTemplate()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Configurar Mensagem do Sorteio (OFICIAL) -->
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-8">
+            <div class="card main-card p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="text-danger fs-3 me-3"><i class="fa-solid fa-message"></i></div>
+                        <div>
+                            <h5 class="card-title mb-0">Mensagem do Sorteio (Template Oficial)</h5>
+                            <p class="card-text text-muted small mb-0">Edite o texto enviado no botão "Enviar Mensagens" com o resultado do sorteio. Use variáveis: <code>{{participante}}</code>, <code>{{amigo}}</code>, <code>{{data}}</code>, <code>{{hora}}</code>.</p>
+                        </div>
+                    </div>
+
+                    <textarea id="drawTemplate" class="form-control" rows="5" placeholder="Digite o template da mensagem do sorteio..."></textarea>
+
+                    <div class="d-flex justify-content-end mt-3 gap-2">
+                        <button id="btnReloadDrawTemplate" class="btn btn-outline-secondary btn-sm" title="Recarregar" onclick="loadDrawTemplate()">
+                            <i class="fa-solid fa-rotate me-1"></i> Recarregar
+                        </button>
+                        <button id="btnSaveDrawTemplate" class="btn btn-danger btn-sm" onclick="saveDrawTemplate()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="text-center mt-5 text-muted small">
         <p>&copy; 2025 Amigo Secreto Project</p>
     </div>
@@ -187,11 +262,12 @@
                     <table class="table table-striped table-hover mb-0 align-middle">
                         <thead class="table-dark sticky-top">
                         <tr>
-                            <th style="width: 10%">ID</th>
-                            <th style="width: 25%">Nome</th>
-                            <th style="width: 25%">Telefone</th>
-                            <th style="width: 25%">Grupo</th>
-                            <th style="width: 15%">Confirmação</th>
+                            <th style="width: 8%">ID</th>
+                            <th style="width: 24%">Nome</th>
+                            <th style="width: 24%">Telefone</th>
+                            <th style="width: 20%">Grupo</th>
+                            <th style="width: 14%">Confirmação</th>
+                            <th style="width: 10%">Ações</th>
                         </tr>
                         </thead>
                         <tbody id="tabelaParticipantesBody">
@@ -204,6 +280,43 @@
             </div>
         </div>
     </div>
+</div>
+
+<div class="modal fade" id="modalSorteio" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-gifts me-2"></i>Resultado do Sorteio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+            </div>
+            <div class="modal-body">
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <h6 class="fw-bold mb-0">Pares Sorteados</h6>
+                    <button onclick="carregarSorteio()" class="btn btn-outline-secondary btn-sm">
+                        <i class="fa-solid fa-rotate me-1"></i> Recarregar
+                    </button>
+                </div>
+
+                <div class="table-responsive border rounded bg-white">
+                    <table class="table table-striped table-hover mb-0 align-middle">
+                        <thead class="table-dark sticky-top">
+                        <tr>
+                            <th style="width: 10%">ID</th>
+                            <th style="width: 35%">Participante</th>
+                            <th style="width: 35%">Amigo Secreto</th>
+                            <th style="width: 20%">Envio</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabelaSorteioBody"></tbody>
+                    </table>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Fechar</button>
+            </div>
+        </div>
+    </div>
+
 </div>
 
 <script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
@@ -310,7 +423,7 @@
 
     async function carregarTabela() {
         const tbody = document.getElementById('tabelaParticipantesBody');
-        tbody.innerHTML = '<tr><td colspan="5" class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando dados...</div></td></tr>';
+        tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando dados...</div></td></tr>';
 
         try {
             const res = await fetch('/api/participantes/listar');
@@ -319,7 +432,7 @@
             tbody.innerHTML = '';
 
             if(dados.length === 0) {
-                tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted py-3">Nenhum participante encontrado.</td></tr>';
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Nenhum participante encontrado.</td></tr>';
                 return;
             }
 
@@ -328,17 +441,91 @@
                     ? '<span class="badge bg-success"><i class="fa-solid fa-check"></i> Confirmado</span>'
                     : '<span class="badge bg-warning text-dark">Pendente</span>';
 
-                const row = `<tr>
+                const row = `<tr data-id="${p.id}">
                     <td>${p.id}</td>
-                    <td><strong>${p.nome}</strong></td>
-                    <td>${p.telefone}</td>
-                    <td><span class="badge bg-secondary">${p.grupo || 'Geral'}</span></td>
+                    <td contenteditable="true" data-campo="nome" class="bg-light">${p.nome || ''}</td>
+                    <td contenteditable="true" data-campo="telefone" class="bg-light">${p.telefone || ''}</td>
+                    <td contenteditable="true" data-campo="grupo" class="bg-light">${p.grupo || ''}</td>
                     <td>${statusBadge}</td>
+                    <td>
+                        <button class="btn btn-outline-success btn-sm" title="Salvar alterações" onclick="salvarLinha(${p.id}, this)"><i class="fa-solid fa-floppy-disk"></i></button>
+                    </td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
         } catch (err) {
-            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-danger py-3">Erro ao carregar dados do servidor.</td></tr>';
+            tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">Erro ao carregar dados do servidor.</td></tr>';
+        }
+    }
+
+    async function salvarLinha(id, btn) {
+        const tr = btn.closest('tr');
+        if (!tr) return;
+        const nomeEl = tr.querySelector('[data-campo="nome"]');
+        const telEl = tr.querySelector('[data-campo="telefone"]');
+        const grupoEl = tr.querySelector('[data-campo="grupo"]');
+
+        const nome = (nomeEl?.innerText || '').trim();
+        const telefone = (telEl?.innerText || '').trim();
+        const grupo = (grupoEl?.innerText || '').trim();
+
+        if (!nome) {
+            Swal.fire('Campos obrigatórios', 'O nome não pode ficar vazio.', 'warning');
+            return;
+        }
+
+        // Gera um id temporário para usar com o helper de loading
+        const tempId = `btn-save-${id}-${Date.now()}`;
+        btn.id = tempId;
+
+        const sucesso = await request(`/api/participantes/${id}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ nome, telefone, grupo })
+        }, null, tempId);
+
+        // Remove id temporário para evitar duplicidades futuras
+        btn.removeAttribute('id');
+
+        if (sucesso) {
+            carregarTabela();
+        }
+    }
+
+    async function carregarSorteio() {
+        const tbody = document.getElementById('tabelaSorteioBody');
+        if(!tbody) return;
+        tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3"><div class="spinner-border text-warning" role="status"></div><div class="mt-2">Carregando resultado...</div></td></tr>';
+
+        try {
+            const res = await fetch('/api/sorteio/listar');
+            const dados = await res.json();
+
+            tbody.innerHTML = '';
+
+            if(!Array.isArray(dados) || dados.length === 0) {
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Nenhum resultado encontrado. Realize o sorteio primeiro.</td></tr>';
+                return;
+            }
+
+            dados.forEach(r => {
+                const envioBadge = r.mensagem_enviada === 1
+                    ? '<span class="badge bg-success"><i class="fa-solid fa-check"></i> Enviado</span>'
+                    : '<span class="badge bg-secondary">Pendente</span>';
+
+                const participanteGrupo = r.participante_grupo ? `<span class="badge bg-secondary ms-1">${r.participante_grupo}</span>` : '';
+                const amigoGrupo = r.amigo_grupo ? `<span class="badge bg-secondary ms-1">${r.amigo_grupo}</span>` : '';
+
+                const row = `<tr>
+                    <td>${r.id}</td>
+                    <td><strong>${r.participante_nome}</strong> ${participanteGrupo}</td>
+                    <td><strong>${r.amigo_nome}</strong> ${amigoGrupo}</td>
+                    <td>${envioBadge}</td>
+                </tr>`;
+                tbody.innerHTML += row;
+            });
+        } catch (e) {
+            tbody.innerHTML = '<tr><td colspan="4" class="text-center text-danger py-3">Erro ao carregar o resultado do sorteio.</td></tr>';
         }
     }
 
@@ -399,6 +586,58 @@
             }
         });
     }
+
+    // --- Configuração: Template da mensagem de teste ---
+    async function loadTestTemplate() {
+        try {
+            const res = await fetch('/api/config/test-message');
+            const data = await res.json();
+            document.getElementById('testTemplate').value = data.template || '';
+        } catch (e) {
+            // silencioso; UI mostrará vazio
+        }
+    }
+
+    async function saveTestTemplate() {
+        const template = document.getElementById('testTemplate').value;
+        const ok = await request('/api/config/test-message', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template })
+        }, null, 'btnSaveTemplate');
+        if (ok) {
+            // opcionalmente recarrega do servidor
+            loadTestTemplate();
+        }
+    }
+
+    // Carrega o template ao abrir a página
+    document.addEventListener('DOMContentLoaded', loadTestTemplate);
+
+    // --- Configuração: Template da mensagem do sorteio (OFICIAL) ---
+    async function loadDrawTemplate() {
+        try {
+            const res = await fetch('/api/config/draw-message');
+            const data = await res.json();
+            document.getElementById('drawTemplate').value = data.template || '';
+        } catch (e) {
+            // silencioso
+        }
+    }
+
+    async function saveDrawTemplate() {
+        const template = document.getElementById('drawTemplate').value;
+        const ok = await request('/api/config/draw-message', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template })
+        }, null, 'btnSaveDrawTemplate');
+        if (ok) {
+            loadDrawTemplate();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDrawTemplate);
 </script>
 </body>
 </html>
