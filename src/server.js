@@ -77,6 +77,57 @@ app.get('/api/participantes/listar', async (req, res) => {
     }
 });
 
+// Rota: Atualizar Participante (editar nome, telefone e grupo)
+app.put('/api/participantes/:id', async (req, res) => {
+    let connection;
+    try {
+        const id = parseInt(req.params.id, 10);
+        if (!Number.isInteger(id) || id <= 0) {
+            return res.status(400).json({ error: 'ID inválido.' });
+        }
+
+        let { nome, telefone, grupo } = req.body || {};
+
+        const setParams = {};
+        if (typeof nome === 'string' && nome.trim() !== '') setParams.nome = nome.trim();
+        if (typeof grupo === 'string') setParams.grupo = grupo.trim() === '' ? null : grupo.trim();
+        if (typeof telefone === 'string') {
+            const telFormatado = formatarTelefone(telefone);
+            if (!telFormatado) {
+                return res.status(400).json({ error: 'Telefone inválido após formatação.' });
+            }
+            setParams.telefone = telFormatado;
+        }
+
+        if (Object.keys(setParams).length === 0) {
+            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
+        }
+
+        connection = await mysqlConnector.conectarMySQL();
+        // Se o telefone for informado, verificar se mudou para zerar a confirmação
+        if (setParams.telefone) {
+            const atualRows = await dbOperations.executarConsulta(connection, 'SELECT telefone FROM participantes WHERE id = ?', [id]);
+            if (atualRows.length === 0) {
+                return res.status(404).json({ error: 'Participante não encontrado.' });
+            }
+            const telefoneAtual = (atualRows[0].telefone || '').toString();
+            if (telefoneAtual !== setParams.telefone) {
+                setParams.confirmacao_recebimento = 0; // volta para pendente
+            }
+        }
+
+        const result = await dbOperations.atualizar(connection, 'participantes', setParams, 'id = ?', [id]);
+        if (result.affectedRows === 0) {
+            return res.status(404).json({ error: 'Participante não encontrado.' });
+        }
+        res.json({ message: 'Participante atualizado com sucesso.' });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
 // Rota: Listar Resultado do Sorteio
 app.get('/api/sorteio/listar', async (req, res) => {
     let connection;

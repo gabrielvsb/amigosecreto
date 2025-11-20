@@ -67,7 +67,11 @@ export async function enviarMensagem() {
 export async function enviarTeste() {
     const connection = await mysqlConnector.conectarMySQL();
 
-    const participantes = await dbOperations.executarConsulta(connection, 'SELECT * FROM participantes');
+    // Envia teste apenas para números PENDENTES de confirmação
+    const participantes = await dbOperations.executarConsulta(
+        connection,
+        'SELECT * FROM participantes WHERE confirmacao_recebimento = 0'
+    );
 
     if (participantes.length <= 0) {
         await mysqlConnector.fecharConexaoMySQL(connection);
@@ -79,7 +83,7 @@ export async function enviarTeste() {
         throw new Error('Configurações do WAHA ausentes.');
     }
 
-    log.gravarLog('- Iniciando TESTE de envio de texto simples...');
+    log.gravarLog('- Iniciando TESTE de envio de texto simples (apenas pendentes)...');
 
     let enviados = 0;
     let erros = 0;
