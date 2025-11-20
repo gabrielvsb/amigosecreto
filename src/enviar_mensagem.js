@@ -67,10 +67,11 @@ export async function enviarMensagem() {
 export async function enviarTeste() {
     const connection = await mysqlConnector.conectarMySQL();
 
-    // Envia teste apenas para números PENDENTES de confirmação
+    // Envia teste apenas uma vez por TELEFONE para números PENDENTES de confirmação
+    // Agrupa por telefone para evitar envios duplicados quando há mais de um participante com o mesmo número
     const participantes = await dbOperations.executarConsulta(
         connection,
-        'SELECT * FROM participantes WHERE confirmacao_recebimento = 0'
+        'SELECT MIN(id) AS id, MIN(nome) AS nome, telefone\n         FROM participantes\n         WHERE confirmacao_recebimento = 0 AND telefone IS NOT NULL\n         GROUP BY telefone'
     );
 
     if (participantes.length <= 0) {
