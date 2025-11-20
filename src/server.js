@@ -12,6 +12,7 @@ import 'dotenv/config'; // Garante que as variáveis de ambiente sejam carregada
 // axios removido: envio de mensagens via webhook agora está em services/wahaService
 import webhookRoutes from './routes/webhookRoutes.js';
 import { formatarTelefone } from './util/telefone.js';
+import { getTestMessageTemplate, setTestMessageTemplate, getDrawMessageTemplate, setDrawMessageTemplate } from './config/appConfig.js';
 
 // Configurações básicas
 const __filename = fileURLToPath(import.meta.url);
@@ -206,6 +207,64 @@ app.post('/api/testar', async (req, res) => {
     try {
         const resultado = await whatsapp.enviarTeste();
         res.json({ message: resultado });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// --- ROTAS DE CONFIGURAÇÃO ---
+
+// Obter template da mensagem de teste
+app.get('/api/config/test-message', async (req, res) => {
+    try {
+        const template = getTestMessageTemplate();
+        res.json({
+            template,
+            placeholders: ['{{nome}}', '{{telefone}}', '{{data}}', '{{hora}}']
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Atualizar template da mensagem de teste
+app.put('/api/config/test-message', async (req, res) => {
+    try {
+        const { template } = req.body || {};
+        if (typeof template !== 'string' || template.trim() === '') {
+            return res.status(400).json({ error: 'Template inválido.' });
+        }
+        const ok = setTestMessageTemplate(template);
+        if (!ok) return res.status(500).json({ error: 'Falha ao salvar o template.' });
+        res.json({ message: 'Template de mensagem de teste salvo com sucesso.' });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Obter template da mensagem OFICIAL do sorteio
+app.get('/api/config/draw-message', async (req, res) => {
+    try {
+        const template = getDrawMessageTemplate();
+        res.json({
+            template,
+            placeholders: ['{{participante}}', '{{amigo}}', '{{data}}', '{{hora}}']
+        });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Atualizar template da mensagem OFICIAL do sorteio
+app.put('/api/config/draw-message', async (req, res) => {
+    try {
+        const { template } = req.body || {};
+        if (typeof template !== 'string' || template.trim() === '') {
+            return res.status(400).json({ error: 'Template inválido.' });
+        }
+        const ok = setDrawMessageTemplate(template);
+        if (!ok) return res.status(500).json({ error: 'Falha ao salvar o template.' });
+        res.json({ message: 'Template de mensagem do sorteio salvo com sucesso.' });
     } catch (error) {
         res.status(500).json({ error: error.toString() });
     }

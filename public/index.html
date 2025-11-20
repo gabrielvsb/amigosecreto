@@ -155,6 +155,62 @@
         </div>
     </div>
 
+    <!-- Card: Configurar Mensagem de Teste -->
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-8">
+            <div class="card main-card p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="text-primary fs-3 me-3"><i class="fa-solid fa-pen-to-square"></i></div>
+                        <div>
+                            <h5 class="card-title mb-0">Mensagem de Teste (Template)</h5>
+                            <p class="card-text text-muted small mb-0">Edite o texto enviado no botão "Testar Disparos". Use variáveis: <code>{{nome}}</code>, <code>{{telefone}}</code>, <code>{{data}}</code>, <code>{{hora}}</code>.</p>
+                        </div>
+                    </div>
+
+                    <textarea id="testTemplate" class="form-control" rows="5" placeholder="Digite o template da mensagem de teste..."></textarea>
+
+                    <div class="d-flex justify-content-end mt-3 gap-2">
+                        <button id="btnReloadTemplate" class="btn btn-outline-secondary btn-sm" title="Recarregar" onclick="loadTestTemplate()">
+                            <i class="fa-solid fa-rotate me-1"></i> Recarregar
+                        </button>
+                        <button id="btnSaveTemplate" class="btn btn-primary btn-sm" onclick="saveTestTemplate()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Card: Configurar Mensagem do Sorteio (OFICIAL) -->
+    <div class="row justify-content-center mt-3">
+        <div class="col-md-8">
+            <div class="card main-card p-3">
+                <div class="card-body">
+                    <div class="d-flex align-items-center mb-2">
+                        <div class="text-danger fs-3 me-3"><i class="fa-solid fa-message"></i></div>
+                        <div>
+                            <h5 class="card-title mb-0">Mensagem do Sorteio (Template Oficial)</h5>
+                            <p class="card-text text-muted small mb-0">Edite o texto enviado no botão "Enviar Mensagens" com o resultado do sorteio. Use variáveis: <code>{{participante}}</code>, <code>{{amigo}}</code>, <code>{{data}}</code>, <code>{{hora}}</code>.</p>
+                        </div>
+                    </div>
+
+                    <textarea id="drawTemplate" class="form-control" rows="5" placeholder="Digite o template da mensagem do sorteio..."></textarea>
+
+                    <div class="d-flex justify-content-end mt-3 gap-2">
+                        <button id="btnReloadDrawTemplate" class="btn btn-outline-secondary btn-sm" title="Recarregar" onclick="loadDrawTemplate()">
+                            <i class="fa-solid fa-rotate me-1"></i> Recarregar
+                        </button>
+                        <button id="btnSaveDrawTemplate" class="btn btn-danger btn-sm" onclick="saveDrawTemplate()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Salvar Template
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="text-center mt-5 text-muted small">
         <p>&copy; 2025 Amigo Secreto Project</p>
     </div>
@@ -530,6 +586,58 @@
             }
         });
     }
+
+    // --- Configuração: Template da mensagem de teste ---
+    async function loadTestTemplate() {
+        try {
+            const res = await fetch('/api/config/test-message');
+            const data = await res.json();
+            document.getElementById('testTemplate').value = data.template || '';
+        } catch (e) {
+            // silencioso; UI mostrará vazio
+        }
+    }
+
+    async function saveTestTemplate() {
+        const template = document.getElementById('testTemplate').value;
+        const ok = await request('/api/config/test-message', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template })
+        }, null, 'btnSaveTemplate');
+        if (ok) {
+            // opcionalmente recarrega do servidor
+            loadTestTemplate();
+        }
+    }
+
+    // Carrega o template ao abrir a página
+    document.addEventListener('DOMContentLoaded', loadTestTemplate);
+
+    // --- Configuração: Template da mensagem do sorteio (OFICIAL) ---
+    async function loadDrawTemplate() {
+        try {
+            const res = await fetch('/api/config/draw-message');
+            const data = await res.json();
+            document.getElementById('drawTemplate').value = data.template || '';
+        } catch (e) {
+            // silencioso
+        }
+    }
+
+    async function saveDrawTemplate() {
+        const template = document.getElementById('drawTemplate').value;
+        const ok = await request('/api/config/draw-message', {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ template })
+        }, null, 'btnSaveDrawTemplate');
+        if (ok) {
+            loadDrawTemplate();
+        }
+    }
+
+    document.addEventListener('DOMContentLoaded', loadDrawTemplate);
 </script>
 </body>
 </html>
