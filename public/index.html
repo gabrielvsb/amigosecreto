@@ -437,9 +437,12 @@
             }
 
             dados.forEach(p => {
-                const statusBadge = p.confirmacao_recebimento === 1
-                    ? '<span class="badge bg-success"><i class="fa-solid fa-check"></i> Confirmado</span>'
-                    : '<span class="badge bg-warning text-dark">Pendente</span>';
+                const confirmado = p.confirmacao_recebimento === 1;
+
+                // Botão de Status (clicável para alternar manual)
+                const statusBadge = confirmado
+                    ? `<button class="btn badge bg-success border-0" onclick="alternarConfirmacao(${p.id}, 0)" title="Clique para desmarcar"><i class="fa-solid fa-check"></i> Confirmado</button>`
+                    : `<button class="btn badge bg-warning text-dark border-0" onclick="alternarConfirmacao(${p.id}, 1)" title="Clique para confirmar manualmente">Pendente</button>`;
 
                 const row = `<tr data-id="${p.id}">
                     <td>${p.id}</td>
@@ -448,14 +451,81 @@
                     <td contenteditable="true" data-campo="grupo" class="bg-light">${p.grupo || ''}</td>
                     <td>${statusBadge}</td>
                     <td>
-                        <button class="btn btn-outline-success btn-sm" title="Salvar alterações" onclick="salvarLinha(${p.id}, this)"><i class="fa-solid fa-floppy-disk"></i></button>
+                        <div class="btn-group" role="group">
+                            <button class="btn btn-outline-success btn-sm" title="Salvar Edição" onclick="salvarLinha(${p.id}, this)">
+                                <i class="fa-solid fa-floppy-disk"></i>
+                            </button>
+                            <button class="btn btn-outline-primary btn-sm" title="Enviar Teste Individual" onclick="enviarTesteIndividual(${p.id}, this)">
+                                <i class="fa-solid fa-paper-plane"></i>
+                            </button>
+                            <button class="btn btn-outline-warning btn-sm" title="Enviar Resultado do Sorteio" onclick="enviarResultadoIndividual(${p.id}, this)">
+                                <i class="fa-solid fa-gift"></i>
+                            </button>
+                        </div>
                     </td>
                 </tr>`;
                 tbody.innerHTML += row;
             });
         } catch (err) {
+            console.error(err);
             tbody.innerHTML = '<tr><td colspan="6" class="text-center text-danger py-3">Erro ao carregar dados do servidor.</td></tr>';
         }
+    }
+
+    // --- NOVAS FUNÇÕES DE AÇÃO ---
+
+    async function alternarConfirmacao(id, novoStatus) {
+        // Confirmação visual antes de executar
+        const acao = novoStatus === 1 ? "Confirmar manualmente" : "Desmarcar confirmação de";
+
+        Swal.fire({
+            title: 'Alterar Status?',
+            text: `Deseja ${acao} este participante?`,
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonText: 'Sim',
+            cancelButtonText: 'Não'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const sucesso = await request(`/api/participantes/${id}`, {
+                    method: 'PUT',
+                    headers: { 'Content-Type': 'application/json' },
+                    body: JSON.stringify({ confirmacao_recebimento: novoStatus })
+                }, null, null); // Sem botão loading específico pois é rápido
+
+                if (sucesso) {
+                    carregarTabela(); // Recarrega para atualizar o badge
+                }
+            }
+        });
+    }
+
+    async function enviarTesteIndividual(id, btn) {
+        // Cria um ID temporário para o loading funcionar no botão específico
+        const tempId = `btn-test-${id}-${Date.now()}`;
+        btn.id = tempId;
+
+        await request(`/api/testar/${id}`, { method: 'POST' }, null, tempId);
+        btn.removeAttribute('id');
+    }
+
+    async function enviarResultadoIndividual(id, btn) {
+        Swal.fire({
+            title: 'Enviar Resultado?',
+            text: "Isso enviará o par sorteado para este participante via WhatsApp.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonText: 'Enviar',
+            confirmButtonColor: '#ffc107',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const tempId = `btn-result-${id}-${Date.now()}`;
+                btn.id = tempId;
+                await request(`/api/enviar/${id}`, { method: 'POST' }, null, tempId);
+                btn.removeAttribute('id');
+            }
+        });
     }
 
     async function salvarLinha(id, btn) {

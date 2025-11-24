@@ -79,6 +79,7 @@ app.get('/api/participantes/listar', async (req, res) => {
 });
 
 // Rota: Atualizar Participante (editar nome, telefone e grupo)
+// Rota: Atualizar Participante (editar nome, telefone, grupo e CONFIRMAÇÃO)
 app.put('/api/participantes/:id', async (req, res) => {
     let connection;
     try {
@@ -87,11 +88,18 @@ app.put('/api/participantes/:id', async (req, res) => {
             return res.status(400).json({ error: 'ID inválido.' });
         }
 
-        let { nome, telefone, grupo } = req.body || {};
+        // Adicionado: confirmacao_recebimento
+        let { nome, telefone, grupo, confirmacao_recebimento } = req.body || {};
 
         const setParams = {};
         if (typeof nome === 'string' && nome.trim() !== '') setParams.nome = nome.trim();
         if (typeof grupo === 'string') setParams.grupo = grupo.trim() === '' ? null : grupo.trim();
+
+        // Lógica de Confirmação Manual
+        if (confirmacao_recebimento !== undefined) {
+            setParams.confirmacao_recebimento = (confirmacao_recebimento == 1 || confirmacao_recebimento === true) ? 1 : 0;
+        }
+
         if (typeof telefone === 'string') {
             const telFormatado = formatarTelefone(telefone);
             if (!telFormatado) {
@@ -105,15 +113,17 @@ app.put('/api/participantes/:id', async (req, res) => {
         }
 
         connection = await mysqlConnector.conectarMySQL();
-        // Se o telefone for informado, verificar se mudou para zerar a confirmação
+        // Se o telefone for informado e mudou, reseta confirmação (a menos que estejamos setando manualmente na mesma req)
         if (setParams.telefone) {
             const atualRows = await dbOperations.executarConsulta(connection, 'SELECT telefone FROM participantes WHERE id = ?', [id]);
             if (atualRows.length === 0) {
                 return res.status(404).json({ error: 'Participante não encontrado.' });
             }
             const telefoneAtual = (atualRows[0].telefone || '').toString();
-            if (telefoneAtual !== setParams.telefone) {
-                setParams.confirmacao_recebimento = 0; // volta para pendente
+
+            // Se mudou o telefone e não foi enviado uma confirmação explicita, reseta para 0
+            if (telefoneAtual !== setParams.telefone && confirmacao_recebimento === undefined) {
+                setParams.confirmacao_recebimento = 0;
             }
         }
 
@@ -270,7 +280,27 @@ app.put('/api/config/draw-message', async (req, res) => {
     }
 });
 
-// Rota: Receber mensagens do WhatsApp (Webhook) agora em routes/webhookRoutes
+// Rota: Enviar Teste Individual
+app.post('/api/testar/:id', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const resultado = await whatsapp.enviarTesteIndividual(id);
+        res.json({ message: resultado });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
+
+// Rota: Enviar Resultado Individual
+app.post('/api/enviar/:id', async (req, res) => {
+    try {
+        const id = parseInt(req.params.id);
+        const resultado = await whatsapp.enviarResultadoIndividual(id);
+        res.json({ message: resultado });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    }
+});
 
 
 const PORT = process.env.PORT || 3000;
