@@ -248,6 +248,10 @@
                 <div class="d-flex justify-content-between align-items-center mb-2">
                     <h6 class="fw-bold mb-0">Lista Atual</h6>
                     <div>
+                        <button onclick="confirmarTodos()" class="btn btn-outline-success btn-sm me-2">
+                            <i class="fa-solid fa-check-double me-1"></i> Confirmar Todos
+                        </button>
+
                         <button onclick="testarDisparos()" class="btn btn-outline-primary btn-sm me-2">
                             <i class="fa-regular fa-paper-plane me-1"></i> Testar Disparos
                         </button>
@@ -705,6 +709,28 @@
         if (ok) {
             loadDrawTemplate();
         }
+    }
+
+    async function confirmarTodos() {
+        Swal.fire({
+            title: 'Confirmar Todos?',
+            text: "Isso marcará manualmente TODOS os participantes pendentes como 'Confirmados'. Deseja continuar?",
+            icon: 'question',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            confirmButtonText: 'Sim, confirmar todos!',
+            cancelButtonText: 'Cancelar'
+        }).then(async (result) => {
+            if (result.isConfirmed) {
+                const sucesso = await request('/api/participantes/confirmar-todos', {
+                    method: 'PUT'
+                }, null, null);
+
+                if (sucesso) {
+                    carregarTabela(); // Recarrega a tabela para mostrar os badges verdes
+                }
+            }
+        });
     }
 
     document.addEventListener('DOMContentLoaded', loadDrawTemplate);

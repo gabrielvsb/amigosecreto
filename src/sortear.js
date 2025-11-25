@@ -25,6 +25,7 @@ export async function realizarSorteio(){
                     await dbOperations.inserir(trx, 'sorteio', parametro);
                 }
             });
+            log.gravarLog(` - Sorteio finalizado. Registros salvos: ${resultado.length}.`);
         }
         return ' - Sorteio realizado!\n';
     } finally {

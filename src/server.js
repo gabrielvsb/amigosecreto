@@ -12,6 +12,7 @@ import 'dotenv/config'; // Garante que as variáveis de ambiente sejam carregada
 // axios removido: envio de mensagens via webhook agora está em services/wahaService
 import webhookRoutes from './routes/webhookRoutes.js';
 import { formatarTelefone } from './util/telefone.js';
+import * as log from './util/log.js';
 import { getTestMessageTemplate, setTestMessageTemplate, getDrawMessageTemplate, setDrawMessageTemplate } from './config/appConfig.js';
 
 // Configurações básicas
@@ -47,6 +48,7 @@ app.post('/api/sortear', async (req, res) => {
         const resultado = await sortear.realizarSorteio();
         res.json({ message: resultado });
     } catch (error) {
+        log.gravarLog(` - Erro ao realizar sorteio: ${error?.message || error}`);
         res.status(500).json({ error: error.toString() });
     }
 });
@@ -78,7 +80,29 @@ app.get('/api/participantes/listar', async (req, res) => {
     }
 });
 
-// Rota: Atualizar Participante (editar nome, telefone e grupo)
+// Rota: Confirmar TODOS os participantes manualmente
+app.put('/api/participantes/confirmar-todos', async (req, res) => {
+    let connection;
+    try {
+        connection = await mysqlConnector.conectarMySQL();
+
+        // Atualiza para 1 (confirmado) onde atualmente é 0 (pendente)
+        const result = await dbOperations.atualizar(
+            connection,
+            'participantes',
+            { confirmacao_recebimento: 1 },
+            'confirmacao_recebimento = 0'
+        );
+
+        const atualizados = result.affectedRows || 0;
+        res.json({ message: `Sucesso! ${atualizados} participantes foram marcados como confirmados.` });
+    } catch (error) {
+        res.status(500).json({ error: error.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
 // Rota: Atualizar Participante (editar nome, telefone, grupo e CONFIRMAÇÃO)
 app.put('/api/participantes/:id', async (req, res) => {
     let connection;
