@@ -148,6 +148,73 @@ export async function enviarTeste() {
     return `Teste finalizado: ${enviados} enviados, ${erros} falhas.`;
 }
 
+// Novo: enviar mensagens apenas do evento do usuário
+export async function enviarMensagemPorEvento(userId, eventId) {
+    const connection = await mysqlConnector.conectarMySQL();
+
+    if (!isConfigured()) {
+        log.gravarLog('ERRO: Configurações do WAHA (URL ou KEY) não encontradas no ambiente.');
+        await mysqlConnector.fecharConexaoMySQL(connection);
+        return 'Erro de configuração do servidor.';
+    }
+
+    const query = `
+        SELECT s.id as id_sorteio, p.nome as nome_participante, p.telefone, a.nome as nome_amigo
+        FROM sorteio s
+        INNER JOIN participantes p ON s.id_participante = p.id
+        INNER JOIN participantes a ON s.id_amigo = a.id
+        WHERE s.mensagem_enviada = 0 AND s.user_id = ? AND s.event_id = ?
+    `;
+
+    const sorteio = await dbOperations.executarConsulta(connection, query, [userId, eventId]);
+
+    if (sorteio.length <= 0) {
+        await mysqlConnector.fecharConexaoMySQL(connection);
+        return 'Não há mensagens pendentes para enviar neste evento.';
+    }
+
+    log.gravarLog(`- Iniciando envio de ${sorteio.length} mensagens via WAHA (user:${userId}, event:${eventId})...`);
+
+    let enviadas = 0;
+    let erros = 0;
+
+    const drawTemplate = getDrawMessageTemplate();
+
+    for (const registro of sorteio) {
+        const agora = new Date();
+        const ctx = {
+            participante: registro.nome_participante,
+            amigo: registro.nome_amigo,
+            data: agora.toLocaleDateString('pt-BR'),
+            hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        const renderizada = renderTemplate(drawTemplate, ctx);
+        const texto = (renderizada && renderizada.trim() !== '')
+            ? renderizada
+            : mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
+        const chatId = `${registro.telefone.replace(/\D/g, '')}@c.us`;
+
+        try {
+            log.gravarLog(` - Enviando para: ${registro.nome_participante} (${chatId})`);
+            await sendText(chatId, texto);
+
+            enviadas++;
+            await new Promise(resolve => setTimeout(resolve, 1000));
+
+            await dbOperations.atualizar(connection, 'sorteio', { mensagem_enviada: 1 }, 'id = ?', [registro.id_sorteio]);
+        } catch (error) {
+            const errorMsg = error.response ?
+                `Status ${error.response.status} - ${JSON.stringify(error.response.data)}` :
+                error.message;
+            log.gravarLog(`ERRO ao enviar para ${registro.nome_participante}: ${errorMsg}`);
+            erros++;
+        }
+    }
+
+    await mysqlConnector.fecharConexaoMySQL(connection);
+    return `Processo finalizado. Enviadas: ${enviadas}, Erros: ${erros}.`;
+}
+
 
 // --- NOVAS FUNÇÕES ---
 
@@ -216,6 +283,120 @@ export async function enviarResultadoIndividual(id) {
         // Marca como enviada se não estava
         await dbOperations.atualizar(connection, 'sorteio', { mensagem_enviada: 1 }, 'id = ?', [registro.id_sorteio]);
 
+        return `Resultado enviado para ${registro.nome_participante}!`;
+    } finally {
+        await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+}
+
+// Enviar TESTE (texto simples) apenas para participantes do evento do usuário (apenas pendentes, agrupado por telefone)
+export async function enviarTestePorEvento(userId, eventId) {
+    const connection = await mysqlConnector.conectarMySQL();
+    try {
+        if (!isConfigured()) throw new Error('Configurações do WAHA ausentes.');
+
+        const participantes = await dbOperations.executarConsulta(
+            connection,
+            'SELECT MIN(id) AS id, MIN(nome) AS nome, telefone\n             FROM participantes\n             WHERE confirmacao_recebimento = 0 AND telefone IS NOT NULL AND user_id = ? AND event_id = ?\n             GROUP BY telefone',
+            [userId, eventId]
+        );
+
+        if (participantes.length <= 0) {
+            return ' - Não há participantes cadastrados para testar neste evento.';
+        }
+
+        let enviados = 0;
+        let erros = 0;
+        const template = getTestMessageTemplate();
+
+        for (const p of participantes) {
+            let telefone = (p.telefone || '').toString().replace(/\D/g, '');
+            const chatId = `${telefone}@c.us`;
+
+            const agora = new Date();
+            const context = {
+                nome: p.nome,
+                telefone: telefone,
+                data: agora.toLocaleDateString('pt-BR'),
+                hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+            };
+            const texto = renderTemplate(template, context) || `Teste para ${p.nome}`;
+
+            try {
+                await sendText(chatId, texto);
+                enviados++;
+                await new Promise(r => setTimeout(r, 500));
+            } catch (e) {
+                erros++;
+                log.gravarLog(`ERRO enviarTestePorEvento -> ${p.nome}: ${e.message || e}`);
+            }
+        }
+
+        return `Teste por evento finalizado: ${enviados} enviados, ${erros} falhas.`;
+    } finally {
+        await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+}
+
+// Enviar TESTE individual para um participante do evento do usuário
+export async function enviarTesteIndividualPorEvento(userId, eventId, id) {
+    const connection = await mysqlConnector.conectarMySQL();
+    try {
+        if (!isConfigured()) throw new Error('Configurações do WAHA ausentes.');
+        const rows = await dbOperations.executarConsulta(
+            connection,
+            'SELECT * FROM participantes WHERE id = ? AND user_id = ? AND event_id = ?',
+            [id, userId, eventId]
+        );
+        if (rows.length === 0) throw new Error('Participante não encontrado no evento.');
+        const p = rows[0];
+
+        const template = getTestMessageTemplate();
+        const telefone = (p.telefone || '').toString().replace(/\D/g, '');
+        const chatId = `${telefone}@c.us`;
+        const agora = new Date();
+        const context = {
+            nome: p.nome,
+            telefone: telefone,
+            data: agora.toLocaleDateString('pt-BR'),
+            hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        const texto = renderTemplate(template, context) || `Teste Individual para ${p.nome}`;
+        await sendText(chatId, texto);
+        return `Mensagem de teste enviada para ${p.nome}!`;
+    } finally {
+        await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+}
+
+// Enviar RESULTADO individual do sorteio para um participante do evento do usuário
+export async function enviarResultadoIndividualPorEvento(userId, eventId, id) {
+    const connection = await mysqlConnector.conectarMySQL();
+    try {
+        if (!isConfigured()) throw new Error('Configurações do WAHA ausentes.');
+        const query = `
+            SELECT s.id as id_sorteio, p.nome as nome_participante, p.telefone, a.nome as nome_amigo
+            FROM sorteio s
+            INNER JOIN participantes p ON s.id_participante = p.id
+            INNER JOIN participantes a ON s.id_amigo = a.id
+            WHERE p.id = ? AND s.user_id = ? AND s.event_id = ?`;
+        const rows = await dbOperations.executarConsulta(connection, query, [id, userId, eventId]);
+        if (rows.length === 0) throw new Error('Sorteio não encontrado para este participante no evento.');
+        const registro = rows[0];
+
+        const drawTemplate = getDrawMessageTemplate();
+        const agora = new Date();
+        const ctx = {
+            participante: registro.nome_participante,
+            amigo: registro.nome_amigo,
+            data: agora.toLocaleDateString('pt-BR'),
+            hora: agora.toLocaleTimeString('pt-BR', { hour: '2-digit', minute: '2-digit' })
+        };
+        const texto = renderTemplate(drawTemplate, ctx) || mensagemUtil.montarMensagem(registro.nome_participante, registro.nome_amigo);
+        const chatId = `${(registro.telefone || '').toString().replace(/\D/g, '')}@c.us`;
+        await sendText(chatId, texto);
+        // Marca como enviada
+        await dbOperations.atualizar(connection, 'sorteio', { mensagem_enviada: 1 }, 'id = ?', [registro.id_sorteio]);
         return `Resultado enviado para ${registro.nome_participante}!`;
     } finally {
         await mysqlConnector.fecharConexaoMySQL(connection);

@@ -1,4 +1,4 @@
-const TABELAS_PERMITIDAS = new Set(['participantes', 'sorteio']);
+const TABELAS_PERMITIDAS = new Set(['participantes', 'sorteio', 'users', 'events']);
 
 function assertTabelaValida(table){
     if(!TABELAS_PERMITIDAS.has(table)){

@@ -14,6 +14,8 @@ import webhookRoutes from './routes/webhookRoutes.js';
 import { formatarTelefone } from './util/telefone.js';
 import * as log from './util/log.js';
 import { getTestMessageTemplate, setTestMessageTemplate, getDrawMessageTemplate, setDrawMessageTemplate } from './config/appConfig.js';
+import bcrypt from 'bcryptjs';
+import { authMiddleware, signToken } from './middleware/auth.js';
 
 // Configurações básicas
 const __filename = fileURLToPath(import.meta.url);
@@ -29,144 +31,245 @@ app.use(express.static(path.join(__dirname, '../public')));
 // Rotas modulares
 app.use('/api', webhookRoutes);
 
-// --- ROTAS DE FLUXO PRINCIPAL ---
-
-// Rota: Upload e Salvar Participantes (Sobrescreve/Limpa)
-app.post('/api/participantes', upload.single('arquivoCSV'), async (req, res) => {
-    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+// Helper: valida se o evento pertence ao usuário logado
+async function assertEventoDoUsuario(userId, eventId) {
+    const connection = await mysqlConnector.conectarMySQL();
     try {
-        const resultado = await sp.salvarParticipantes(req.file.path);
-        res.json({ message: resultado });
-    } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        const rows = await dbOperations.executarConsulta(
+            connection,
+            'SELECT id FROM events WHERE id = ? AND user_id = ?',
+            [eventId, userId]
+        );
+        if (rows.length === 0) {
+            const err = new Error('Evento não encontrado para este usuário.');
+            err.status = 404;
+            throw err;
+        }
+    } finally {
+        await mysqlConnector.fecharConexaoMySQL(connection);
     }
-});
+}
 
-// Rota: Realizar Sorteio
-app.post('/api/sortear', async (req, res) => {
-    try {
-        const resultado = await sortear.realizarSorteio();
-        res.json({ message: resultado });
-    } catch (error) {
-        log.gravarLog(` - Erro ao realizar sorteio: ${error?.message || error}`);
-        res.status(500).json({ error: error.toString() });
-    }
-});
-
-// Rota: Enviar Mensagens (Oficiais)
-app.post('/api/enviar', async (req, res) => {
-    try {
-        const resultado = await whatsapp.enviarMensagem();
-        res.json({ message: resultado });
-    } catch (error) {
-        res.status(500).json({ error: error.toString() });
-    }
-});
-
-// --- ROTAS ADICIONAIS DE GERENCIAMENTO ---
-
-// Rota: Listar Participantes
-app.get('/api/participantes/listar', async (req, res) => {
+// --- AUTENTICAÇÃO ---
+app.post('/api/auth/register', async (req, res) => {
+    const { name, email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
     let connection;
     try {
         connection = await mysqlConnector.conectarMySQL();
-        // Inclui o novo campo na consulta
-        const participantes = await dbOperations.executarConsulta(connection, 'SELECT id, nome, telefone, grupo, confirmacao_recebimento FROM participantes');
+        const rows = await dbOperations.executarConsulta(connection, 'SELECT id FROM users WHERE email = ?', [email]);
+        if (rows.length > 0) return res.status(409).json({ error: 'Email já cadastrado.' });
+        const password_hash = await bcrypt.hash(password, 10);
+        await dbOperations.inserir(connection, 'users', { name: name || null, email, password_hash });
+        const user = await dbOperations.executarConsulta(connection, 'SELECT id, name, email FROM users WHERE email = ?', [email]);
+        const u = user[0];
+        const token = signToken({ id: u.id, email: u.email, name: u.name });
+        res.json({ token, user: u });
+    } catch (e) {
+        res.status(500).json({ error: e.message || e.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
+app.post('/api/auth/login', async (req, res) => {
+    const { email, password } = req.body || {};
+    if (!email || !password) return res.status(400).json({ error: 'Email e senha são obrigatórios.' });
+    let connection;
+    try {
+        connection = await mysqlConnector.conectarMySQL();
+        const rows = await dbOperations.executarConsulta(connection, 'SELECT id, name, email, password_hash FROM users WHERE email = ?', [email]);
+        if (rows.length === 0) return res.status(401).json({ error: 'Credenciais inválidas.' });
+        const u = rows[0];
+        const ok = await bcrypt.compare(password, u.password_hash);
+        if (!ok) return res.status(401).json({ error: 'Credenciais inválidas.' });
+        const token = signToken({ id: u.id, email: u.email, name: u.name });
+        res.json({ token, user: { id: u.id, name: u.name, email: u.email } });
+    } catch (e) {
+        res.status(500).json({ error: e.message || e.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
+// --- EVENTOS (PROTEGIDOS) ---
+app.get('/api/user/events', authMiddleware, async (req, res) => {
+    let connection;
+    try {
+        connection = await mysqlConnector.conectarMySQL();
+        const eventos = await dbOperations.executarConsulta(connection, 'SELECT id, name, created_at FROM events WHERE user_id = ? ORDER BY created_at DESC', [req.user.id]);
+        res.json(eventos);
+    } catch (e) {
+        res.status(500).json({ error: e.message || e.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
+app.post('/api/user/events', authMiddleware, async (req, res) => {
+    const { name } = req.body || {};
+    if (!name || String(name).trim() === '') return res.status(400).json({ error: 'Nome do evento é obrigatório.' });
+    let connection;
+    try {
+        connection = await mysqlConnector.conectarMySQL();
+        await dbOperations.inserir(connection, 'events', { user_id: req.user.id, name: String(name).trim() });
+        const criado = await dbOperations.executarConsulta(connection, 'SELECT id, name, created_at FROM events WHERE user_id = ? ORDER BY id DESC LIMIT 1', [req.user.id]);
+        res.json({ message: 'Evento criado com sucesso.', event: criado[0] });
+    } catch (e) {
+        res.status(500).json({ error: e.message || e.toString() });
+    } finally {
+        if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
+    }
+});
+
+// Upload de participantes por evento
+app.post('/api/user/events/:eventId/participantes', authMiddleware, upload.single('arquivoCSV'), async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!req.file) return res.status(400).json({ error: 'Nenhum arquivo enviado.' });
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    try {
+        await assertEventoDoUsuario(req.user.id, eventId);
+        const mensagem = await sp.salvarParticipantesPorEvento(req.file.path, req.user.id, eventId);
+        res.json({ message: mensagem });
+    } catch (e) {
+        res.status(e.status || 500).json({ error: e.message || e.toString() });
+    }
+});
+
+// Sorteio por evento
+app.post('/api/user/events/:eventId/sortear', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    try {
+        await assertEventoDoUsuario(req.user.id, eventId);
+        const msg = await sortear.realizarSorteioPorEvento(req.user.id, eventId);
+        res.json({ message: msg });
+    } catch (e) {
+        log.gravarLog(` - Erro ao realizar sorteio por evento: ${e?.message || e}`);
+        res.status(e.status || 500).json({ error: e.message || e.toString() });
+    }
+});
+
+// Enviar mensagens do evento
+app.post('/api/user/events/:eventId/enviar', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    try {
+        await assertEventoDoUsuario(req.user.id, eventId);
+        const msg = await whatsapp.enviarMensagemPorEvento(req.user.id, eventId);
+        res.json({ message: msg });
+    } catch (e) {
+        res.status(e.status || 500).json({ error: e.message || e.toString() });
+    }
+});
+
+// --- ROTAS PROTEGIDAS DE GERENCIAMENTO POR EVENTO ---
+
+// Listar participantes do evento (protegido)
+app.get('/api/user/events/:eventId/participantes', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    let connection;
+    try {
+        await assertEventoDoUsuario(req.user.id, eventId);
+        connection = await mysqlConnector.conectarMySQL();
+        const participantes = await dbOperations.executarConsulta(
+            connection,
+            'SELECT id, nome, telefone, grupo, confirmacao_recebimento FROM participantes WHERE user_id = ? AND event_id = ? ORDER BY id ASC',
+            [req.user.id, eventId]
+        );
         res.json(participantes);
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     } finally {
         if(connection) await mysqlConnector.fecharConexaoMySQL(connection);
     }
 });
 
-// Rota: Confirmar TODOS os participantes manualmente
-app.put('/api/participantes/confirmar-todos', async (req, res) => {
+// Confirmar TODOS os participantes do evento
+app.put('/api/user/events/:eventId/participantes/confirmar-todos', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
     let connection;
     try {
+        await assertEventoDoUsuario(req.user.id, eventId);
         connection = await mysqlConnector.conectarMySQL();
-
-        // Atualiza para 1 (confirmado) onde atualmente é 0 (pendente)
         const result = await dbOperations.atualizar(
             connection,
             'participantes',
             { confirmacao_recebimento: 1 },
-            'confirmacao_recebimento = 0'
+            'user_id = ? AND event_id = ? AND confirmacao_recebimento = 0',
+            [req.user.id, eventId]
         );
-
         const atualizados = result.affectedRows || 0;
         res.json({ message: `Sucesso! ${atualizados} participantes foram marcados como confirmados.` });
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     } finally {
         if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
     }
 });
 
-// Rota: Atualizar Participante (editar nome, telefone, grupo e CONFIRMAÇÃO)
-app.put('/api/participantes/:id', async (req, res) => {
+// Atualizar um participante do evento
+app.put('/api/user/events/:eventId/participantes/:id', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
     let connection;
     try {
-        const id = parseInt(req.params.id, 10);
-        if (!Number.isInteger(id) || id <= 0) {
-            return res.status(400).json({ error: 'ID inválido.' });
-        }
-
-        // Adicionado: confirmacao_recebimento
+        await assertEventoDoUsuario(req.user.id, eventId);
         let { nome, telefone, grupo, confirmacao_recebimento } = req.body || {};
 
         const setParams = {};
         if (typeof nome === 'string' && nome.trim() !== '') setParams.nome = nome.trim();
         if (typeof grupo === 'string') setParams.grupo = grupo.trim() === '' ? null : grupo.trim();
-
-        // Lógica de Confirmação Manual
         if (confirmacao_recebimento !== undefined) {
             setParams.confirmacao_recebimento = (confirmacao_recebimento == 1 || confirmacao_recebimento === true) ? 1 : 0;
         }
-
         if (typeof telefone === 'string') {
             const telFormatado = formatarTelefone(telefone);
-            if (!telFormatado) {
-                return res.status(400).json({ error: 'Telefone inválido após formatação.' });
-            }
+            if (!telFormatado) return res.status(400).json({ error: 'Telefone inválido após formatação.' });
             setParams.telefone = telFormatado;
         }
-
-        if (Object.keys(setParams).length === 0) {
-            return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
-        }
+        if (Object.keys(setParams).length === 0) return res.status(400).json({ error: 'Nenhum campo válido para atualizar.' });
 
         connection = await mysqlConnector.conectarMySQL();
-        // Se o telefone for informado e mudou, reseta confirmação (a menos que estejamos setando manualmente na mesma req)
-        if (setParams.telefone) {
-            const atualRows = await dbOperations.executarConsulta(connection, 'SELECT telefone FROM participantes WHERE id = ?', [id]);
-            if (atualRows.length === 0) {
-                return res.status(404).json({ error: 'Participante não encontrado.' });
-            }
+        // Resetar confirmação se telefone mudou e não foi enviado explicitamente
+        if (setParams.telefone && confirmacao_recebimento === undefined) {
+            const atualRows = await dbOperations.executarConsulta(
+                connection,
+                'SELECT telefone FROM participantes WHERE id = ? AND user_id = ? AND event_id = ?',
+                [id, req.user.id, eventId]
+            );
+            if (atualRows.length === 0) return res.status(404).json({ error: 'Participante não encontrado.' });
             const telefoneAtual = (atualRows[0].telefone || '').toString();
-
-            // Se mudou o telefone e não foi enviado uma confirmação explicita, reseta para 0
-            if (telefoneAtual !== setParams.telefone && confirmacao_recebimento === undefined) {
-                setParams.confirmacao_recebimento = 0;
-            }
+            if (telefoneAtual !== setParams.telefone) setParams.confirmacao_recebimento = 0;
         }
 
-        const result = await dbOperations.atualizar(connection, 'participantes', setParams, 'id = ?', [id]);
-        if (result.affectedRows === 0) {
-            return res.status(404).json({ error: 'Participante não encontrado.' });
-        }
+        const result = await dbOperations.atualizar(
+            connection,
+            'participantes',
+            setParams,
+            'id = ? AND user_id = ? AND event_id = ?',
+            [id, req.user.id, eventId]
+        );
+        if (result.affectedRows === 0) return res.status(404).json({ error: 'Participante não encontrado.' });
         res.json({ message: 'Participante atualizado com sucesso.' });
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     } finally {
         if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
     }
 });
 
-// Rota: Listar Resultado do Sorteio
-app.get('/api/sorteio/listar', async (req, res) => {
+// Listar resultado do sorteio do evento
+app.get('/api/user/events/:eventId/sorteio', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
     let connection;
     try {
+        await assertEventoDoUsuario(req.user.id, eventId);
         connection = await mysqlConnector.conectarMySQL();
         const sql = `
             SELECT 
@@ -183,73 +286,106 @@ app.get('/api/sorteio/listar', async (req, res) => {
             FROM sorteio s
             JOIN participantes p1 ON p1.id = s.id_participante
             JOIN participantes p2 ON p2.id = s.id_amigo
+            WHERE s.user_id = ? AND s.event_id = ?
             ORDER BY p1.nome ASC`;
-
-        const resultado = await dbOperations.executarConsulta(connection, sql);
+        const resultado = await dbOperations.executarConsulta(connection, sql, [req.user.id, eventId]);
         res.json(resultado);
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     } finally {
         if (connection) await mysqlConnector.fecharConexaoMySQL(connection);
     }
 });
 
-// Rota: Adicionar Participante Manualmente
-app.post('/api/participantes/manual', async (req, res) => {
-    const { nome, telefone, grupo } = req.body;
-
-    if (!nome || !telefone) {
-        return res.status(400).json({ error: 'Nome e Telefone são obrigatórios.' });
-    }
-
+// Adicionar participante manualmente no evento
+app.post('/api/user/events/:eventId/participantes/manual', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    const { nome, telefone, grupo } = req.body || {};
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    if (!nome || !telefone) return res.status(400).json({ error: 'Nome e Telefone são obrigatórios.' });
     let connection;
     try {
+        await assertEventoDoUsuario(req.user.id, eventId);
         connection = await mysqlConnector.conectarMySQL();
-
         const telefoneFormatado = formatarTelefone(telefone);
-        if (!telefoneFormatado) {
-            return res.status(400).json({ error: 'Telefone inválido após formatação.' });
-        }
-
-        const novoParticipante = { nome, telefone: telefoneFormatado, grupo: grupo || null };
+        if (!telefoneFormatado) return res.status(400).json({ error: 'Telefone inválido após formatação.' });
+        const novoParticipante = { nome, telefone: telefoneFormatado, grupo: (grupo || null), user_id: req.user.id, event_id: eventId };
         await dbOperations.inserir(connection, 'participantes', novoParticipante);
         res.json({ message: `Participante ${nome} adicionado com sucesso!` });
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     } finally {
         if(connection) await mysqlConnector.fecharConexaoMySQL(connection);
     }
 });
 
-// Rota: Limpar Banco de Dados (Apagar tudo)
-app.delete('/api/participantes', async (req, res) => {
+// Limpar dados do evento (participantes e sorteio do usuário)
+app.delete('/api/user/events/:eventId/participantes', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
     let connection;
     try {
+        await assertEventoDoUsuario(req.user.id, eventId);
         connection = await mysqlConnector.conectarMySQL();
-        await dbOperations.resetarTabela(connection, 'sorteio');
-        await dbOperations.resetarTabela(connection, 'participantes');
-        res.json({ message: 'Todos os dados (sorteio e participantes) foram apagados.' });
+        await dbOperations.executarTransacao(connection, async (trx) => {
+            await dbOperations.executarConsulta(trx, 'DELETE FROM sorteio WHERE user_id = ? AND event_id = ?', [req.user.id, eventId]);
+            await dbOperations.executarConsulta(trx, 'DELETE FROM participantes WHERE user_id = ? AND event_id = ?', [req.user.id, eventId]);
+        });
+        res.json({ message: 'Participantes e sorteio do evento foram apagados.' });
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     } finally {
         if(connection) await mysqlConnector.fecharConexaoMySQL(connection);
     }
 });
 
-// Rota: Enviar Mensagem de Teste
-app.post('/api/testar', async (req, res) => {
+// Enviar mensagem de teste para todos do evento
+app.post('/api/user/events/:eventId/testar', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
     try {
-        const resultado = await whatsapp.enviarTeste();
+        await assertEventoDoUsuario(req.user.id, eventId);
+        const resultado = await whatsapp.enviarTestePorEvento(req.user.id, eventId);
         res.json({ message: resultado });
     } catch (error) {
-        res.status(500).json({ error: error.toString() });
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
     }
 });
 
-// --- ROTAS DE CONFIGURAÇÃO ---
+// Enviar teste individual para participante do evento
+app.post('/api/user/events/:eventId/testar/:id', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
+    try {
+        await assertEventoDoUsuario(req.user.id, eventId);
+        const resultado = await whatsapp.enviarTesteIndividualPorEvento(req.user.id, eventId, id);
+        res.json({ message: resultado });
+    } catch (error) {
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
+    }
+});
+
+// Enviar resultado individual do sorteio para participante do evento
+app.post('/api/user/events/:eventId/enviar/:id', authMiddleware, async (req, res) => {
+    const eventId = parseInt(req.params.eventId, 10);
+    const id = parseInt(req.params.id, 10);
+    if (!Number.isInteger(eventId) || eventId <= 0) return res.status(400).json({ error: 'Evento inválido.' });
+    if (!Number.isInteger(id) || id <= 0) return res.status(400).json({ error: 'ID inválido.' });
+    try {
+        await assertEventoDoUsuario(req.user.id, eventId);
+        const resultado = await whatsapp.enviarResultadoIndividualPorEvento(req.user.id, eventId, id);
+        res.json({ message: resultado });
+    } catch (error) {
+        res.status(error.status || 500).json({ error: error.message || error.toString() });
+    }
+});
+
+// --- ROTAS DE CONFIGURAÇÃO (PROTEGIDAS) ---
 
 // Obter template da mensagem de teste
-app.get('/api/config/test-message', async (req, res) => {
+app.get('/api/config/test-message', authMiddleware, async (req, res) => {
     try {
         const template = getTestMessageTemplate();
         res.json({
@@ -262,7 +398,7 @@ app.get('/api/config/test-message', async (req, res) => {
 });
 
 // Atualizar template da mensagem de teste
-app.put('/api/config/test-message', async (req, res) => {
+app.put('/api/config/test-message', authMiddleware, async (req, res) => {
     try {
         const { template } = req.body || {};
         if (typeof template !== 'string' || template.trim() === '') {
@@ -277,7 +413,7 @@ app.put('/api/config/test-message', async (req, res) => {
 });
 
 // Obter template da mensagem OFICIAL do sorteio
-app.get('/api/config/draw-message', async (req, res) => {
+app.get('/api/config/draw-message', authMiddleware, async (req, res) => {
     try {
         const template = getDrawMessageTemplate();
         res.json({
@@ -290,7 +426,7 @@ app.get('/api/config/draw-message', async (req, res) => {
 });
 
 // Atualizar template da mensagem OFICIAL do sorteio
-app.put('/api/config/draw-message', async (req, res) => {
+app.put('/api/config/draw-message', authMiddleware, async (req, res) => {
     try {
         const { template } = req.body || {};
         if (typeof template !== 'string' || template.trim() === '') {
@@ -299,28 +435,6 @@ app.put('/api/config/draw-message', async (req, res) => {
         const ok = setDrawMessageTemplate(template);
         if (!ok) return res.status(500).json({ error: 'Falha ao salvar o template.' });
         res.json({ message: 'Template de mensagem do sorteio salvo com sucesso.' });
-    } catch (error) {
-        res.status(500).json({ error: error.toString() });
-    }
-});
-
-// Rota: Enviar Teste Individual
-app.post('/api/testar/:id', async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        const resultado = await whatsapp.enviarTesteIndividual(id);
-        res.json({ message: resultado });
-    } catch (error) {
-        res.status(500).json({ error: error.toString() });
-    }
-});
-
-// Rota: Enviar Resultado Individual
-app.post('/api/enviar/:id', async (req, res) => {
-    try {
-        const id = parseInt(req.params.id);
-        const resultado = await whatsapp.enviarResultadoIndividual(id);
-        res.json({ message: resultado });
     } catch (error) {
         res.status(500).json({ error: error.toString() });
     }

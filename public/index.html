@@ -60,6 +60,39 @@
         <h1 class="header-title">🎅 Gerenciador de Amigo Secreto</h1>
     </div>
 
+    <!-- Barra de Perfil / Eventos -->
+    <div class="row justify-content-center mb-3">
+        <div class="col-md-10">
+            <div class="card main-card p-3">
+                <div class="d-flex flex-wrap gap-2 align-items-center justify-content-between">
+                    <div class="d-flex align-items-center gap-2">
+                        <i class="fa-regular fa-user fs-4 text-primary"></i>
+                        <div id="authStatus" class="small text-muted">
+                            Não autenticado. Faça login para criar e gerenciar seus eventos.
+                        </div>
+                    </div>
+
+                    <div class="d-flex flex-wrap gap-2 align-items-center">
+                        <div id="eventControls" class="d-none">
+                            <select id="eventSelect" class="form-select form-select-sm d-inline-block" style="min-width: 250px;"></select>
+                            <button class="btn btn-outline-primary btn-sm" onclick="criarEvento()">
+                                <i class="fa-solid fa-plus"></i> Novo Evento
+                            </button>
+                        </div>
+                        <div id="authButtons">
+                            <button class="btn btn-outline-secondary btn-sm" onclick="abrirLogin()">
+                                <i class="fa-solid fa-right-to-bracket"></i> Entrar / Registrar
+                            </button>
+                        </div>
+                        <button id="btnSair" class="btn btn-outline-danger btn-sm d-none" onclick="sair()">
+                            <i class="fa-solid fa-right-from-bracket"></i> Sair
+                        </button>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
     <div class="row justify-content-center g-4 mb-4">
 
         <div class="col-md-4">
@@ -352,7 +385,14 @@
         setLoading(btnId, true);
 
         try {
-            const res = await fetch(url, options);
+            // Injeta Authorization automaticamente quando existir token e não tiver sido enviado
+            const finalOptions = { ...(options || {}) };
+            finalOptions.headers = finalOptions.headers || {};
+            if(auth.token && !finalOptions.headers['Authorization']){
+                finalOptions.headers['Authorization'] = 'Bearer ' + auth.token;
+            }
+
+            const res = await fetch(url, finalOptions);
             const data = await res.json();
 
             if (res.ok) {
@@ -387,6 +427,195 @@
         }
     }
 
+    // --- Estado de Autenticação e Eventos ---
+    let auth = {
+        token: localStorage.getItem('token') || null,
+        user: JSON.parse(localStorage.getItem('user') || 'null'),
+        eventId: localStorage.getItem('eventId') || null
+    };
+
+    function setToken(token, user){
+        auth.token = token;
+        auth.user = user;
+        if(token) localStorage.setItem('token', token); else localStorage.removeItem('token');
+        if(user) localStorage.setItem('user', JSON.stringify(user)); else localStorage.removeItem('user');
+    }
+
+    function setEventId(eventId){
+        auth.eventId = eventId;
+        if(eventId) localStorage.setItem('eventId', eventId); else localStorage.removeItem('eventId');
+        const select = document.getElementById('eventSelect');
+        if(select && eventId) select.value = String(eventId);
+    }
+
+    function updateAuthUI(){
+        const status = document.getElementById('authStatus');
+        const authButtons = document.getElementById('authButtons');
+        const btnSair = document.getElementById('btnSair');
+        const eventControls = document.getElementById('eventControls');
+        if(auth.token && auth.user){
+            status.textContent = `Conectado como ${auth.user.name || auth.user.email} — selecione um evento para operar.`;
+            authButtons.classList.add('d-none');
+            btnSair.classList.remove('d-none');
+            eventControls.classList.remove('d-none');
+            carregarEventos();
+        } else {
+            status.textContent = 'Não autenticado. Faça login para criar e gerenciar seus eventos.';
+            authButtons.classList.remove('d-none');
+            btnSair.classList.add('d-none');
+            eventControls.classList.add('d-none');
+        }
+    }
+
+    async function carregarEventos(){
+        if(!auth.token) return;
+        try{
+            const res = await fetch('/api/user/events', { headers: { 'Authorization': 'Bearer ' + auth.token }});
+            const eventos = await res.json();
+            const select = document.getElementById('eventSelect');
+            select.innerHTML = '';
+            if(Array.isArray(eventos) && eventos.length){
+                eventos.forEach(ev=>{
+                    const opt = document.createElement('option');
+                    opt.value = ev.id;
+                    opt.textContent = `${ev.name} (id ${ev.id})`;
+                    select.appendChild(opt);
+                });
+                const firstId = auth.eventId && eventos.some(e=>String(e.id)===String(auth.eventId)) ? auth.eventId : eventos[0].id;
+                setEventId(firstId);
+                select.value = String(firstId);
+            } else {
+                const opt = document.createElement('option');
+                opt.textContent = 'Nenhum evento. Crie um novo.';
+                opt.value = '';
+                select.appendChild(opt);
+                setEventId(null);
+            }
+            select.onchange = () => setEventId(select.value || null);
+        } catch (e){
+            console.error(e);
+        }
+    }
+
+    async function criarEvento(){
+        if(!auth.token){
+            Swal.fire('Atenção', 'Faça login primeiro.', 'info');
+            return;
+        }
+        const { value: nome } = await Swal.fire({
+            title: 'Novo Evento',
+            input: 'text',
+            inputLabel: 'Nome do evento',
+            inputPlaceholder: 'Ex.: Amigo Secreto Família 2025',
+            showCancelButton: true,
+        });
+        const name = (nome || '').trim();
+        if(!name) return;
+        try{
+            const res = await fetch('/api/user/events', {
+                method: 'POST',
+                headers: {
+                    'Content-Type': 'application/json',
+                    'Authorization': 'Bearer ' + auth.token
+                },
+                body: JSON.stringify({ name })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error || 'Falha ao criar evento');
+            Swal.fire('Sucesso', 'Evento criado!', 'success');
+            await carregarEventos();
+            if(data.event?.id) setEventId(data.event.id);
+        } catch(err){
+            Swal.fire('Erro', err.message, 'error');
+        }
+    }
+
+    function abrirLogin(){
+        const html = `
+            <div class="mb-2">
+                <label class="form-label">Nome (opcional no registro)</label>
+                <input id="authName" class="form-control" placeholder="Seu nome">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Email</label>
+                <input id="authEmail" type="email" class="form-control" placeholder="email@exemplo.com">
+            </div>
+            <div class="mb-2">
+                <label class="form-label">Senha</label>
+                <input id="authPass" type="password" class="form-control" placeholder="••••••">
+            </div>
+        `;
+        Swal.fire({
+            title: 'Entrar ou Registrar',
+            html,
+            showDenyButton: true,
+            confirmButtonText: 'Entrar',
+            denyButtonText: 'Registrar',
+            focusConfirm: false,
+            preConfirm: () => {
+                const email = document.getElementById('authEmail').value.trim();
+                const password = document.getElementById('authPass').value;
+                return { email, password };
+            },
+            preDeny: () => {
+                const name = document.getElementById('authName').value.trim();
+                const email = document.getElementById('authEmail').value.trim();
+                const password = document.getElementById('authPass').value;
+                return { name, email, password };
+            }
+        }).then(async (result)=>{
+            if(result.isConfirmed){
+                const { email, password } = result.value || {};
+                await doLogin(email, password);
+            } else if (result.isDenied){
+                const { name, email, password } = result.value || {};
+                await doRegister(name, email, password);
+            }
+        });
+    }
+
+    async function doLogin(email, password){
+        if(!email || !password){ Swal.fire('Atenção','Informe email e senha.','warning'); return; }
+        try{
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error || 'Falha no login');
+            setToken(data.token, data.user);
+            updateAuthUI();
+            Swal.fire('Bem-vindo!', 'Login realizado com sucesso.', 'success');
+        } catch(err){
+            Swal.fire('Erro', err.message, 'error');
+        }
+    }
+
+    async function doRegister(name, email, password){
+        if(!email || !password){ Swal.fire('Atenção','Informe email e senha.','warning'); return; }
+        try{
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type':'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await res.json();
+            if(!res.ok) throw new Error(data.error || 'Falha no registro');
+            setToken(data.token, data.user);
+            updateAuthUI();
+            Swal.fire('Sucesso', 'Conta criada e login realizado.', 'success');
+        } catch(err){
+            Swal.fire('Erro', err.message, 'error');
+        }
+    }
+
+    function sair(){
+        setEventId(null);
+        setToken(null, null);
+        updateAuthUI();
+    }
+
     // --- Funções do Fluxo Principal ---
 
     function uploadCSV() {
@@ -396,14 +625,27 @@
             return;
         }
 
+        if(!auth.token || !auth.eventId){
+            Swal.fire('Atenção', 'Faça login e selecione um evento para enviar participantes.', 'info');
+            return;
+        }
+
         const formData = new FormData();
         formData.append('arquivoCSV', fileInput.files[0]);
 
-        request('/api/participantes', { method: 'POST', body: formData }, 'statusUpload', 'btnUpload');
+        const url = `/api/user/events/${auth.eventId}/participantes`;
+        const options = { method: 'POST', body: formData, headers: { 'Authorization': 'Bearer ' + auth.token } };
+        request(url, options, 'statusUpload', 'btnUpload');
     }
 
     function realizarSorteio() {
-        request('/api/sortear', { method: 'POST' }, 'statusSorteio', 'btnSorteio');
+        if(!auth.token || !auth.eventId){
+            Swal.fire('Atenção', 'Faça login e selecione um evento para sortear.', 'info');
+            return;
+        }
+        const url = `/api/user/events/${auth.eventId}/sortear`;
+        const options = { method: 'POST', headers: { 'Authorization': 'Bearer ' + auth.token } };
+        request(url, options, 'statusSorteio', 'btnSorteio');
     }
 
     function enviarMensagens() {
@@ -418,7 +660,13 @@
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
-                request('/api/enviar', { method: 'POST' }, 'statusEnvio', 'btnEnvio');
+                if(!auth.token || !auth.eventId){
+                    Swal.fire('Atenção', 'Faça login e selecione um evento para enviar mensagens.', 'info');
+                    return;
+                }
+                const url = `/api/user/events/${auth.eventId}/enviar`;
+                const options = { method: 'POST', headers: { 'Authorization': 'Bearer ' + auth.token } };
+                request(url, options, 'statusEnvio', 'btnEnvio');
             }
         });
     }
@@ -430,7 +678,11 @@
         tbody.innerHTML = '<tr><td colspan="6" class="text-center py-3"><div class="spinner-border text-primary" role="status"></div><div class="mt-2">Carregando dados...</div></td></tr>';
 
         try {
-            const res = await fetch('/api/participantes/listar');
+            if(!auth.token || !auth.eventId){
+                tbody.innerHTML = '<tr><td colspan="6" class="text-center text-muted py-3">Faça login e selecione um evento.</td></tr>';
+                return;
+            }
+            const res = await fetch(`/api/user/events/${auth.eventId}/participantes`, { headers: { 'Authorization': 'Bearer ' + auth.token } });
             const dados = await res.json();
 
             tbody.innerHTML = '';
@@ -476,6 +728,9 @@
         }
     }
 
+    // Inicializa UI
+    updateAuthUI();
+
     // --- NOVAS FUNÇÕES DE AÇÃO ---
 
     async function alternarConfirmacao(id, novoStatus) {
@@ -491,9 +746,10 @@
             cancelButtonText: 'Não'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const sucesso = await request(`/api/participantes/${id}`, {
+                if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+                const sucesso = await request(`/api/user/events/${auth.eventId}/participantes/${id}`, {
                     method: 'PUT',
-                    headers: { 'Content-Type': 'application/json' },
+                    headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
                     body: JSON.stringify({ confirmacao_recebimento: novoStatus })
                 }, null, null); // Sem botão loading específico pois é rápido
 
@@ -509,7 +765,8 @@
         const tempId = `btn-test-${id}-${Date.now()}`;
         btn.id = tempId;
 
-        await request(`/api/testar/${id}`, { method: 'POST' }, null, tempId);
+        if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+        await request(`/api/user/events/${auth.eventId}/testar/${id}`, { method: 'POST', headers: { 'Authorization': 'Bearer ' + auth.token } }, null, tempId);
         btn.removeAttribute('id');
     }
 
@@ -526,7 +783,8 @@
             if (result.isConfirmed) {
                 const tempId = `btn-result-${id}-${Date.now()}`;
                 btn.id = tempId;
-                await request(`/api/enviar/${id}`, { method: 'POST' }, null, tempId);
+                if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+                await request(`/api/user/events/${auth.eventId}/enviar/${id}`, { method: 'POST', headers: { 'Authorization': 'Bearer ' + auth.token } }, null, tempId);
                 btn.removeAttribute('id');
             }
         });
@@ -552,9 +810,10 @@
         const tempId = `btn-save-${id}-${Date.now()}`;
         btn.id = tempId;
 
-        const sucesso = await request(`/api/participantes/${id}`, {
+        if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+        const sucesso = await request(`/api/user/events/${auth.eventId}/participantes/${id}`, {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
             body: JSON.stringify({ nome, telefone, grupo })
         }, null, tempId);
 
@@ -572,7 +831,11 @@
         tbody.innerHTML = '<tr><td colspan="4" class="text-center py-3"><div class="spinner-border text-warning" role="status"></div><div class="mt-2">Carregando resultado...</div></td></tr>';
 
         try {
-            const res = await fetch('/api/sorteio/listar');
+            if(!auth.token || !auth.eventId){
+                tbody.innerHTML = '<tr><td colspan="4" class="text-center text-muted py-3">Faça login e selecione um evento.</td></tr>';
+                return;
+            }
+            const res = await fetch(`/api/user/events/${auth.eventId}/sorteio`, { headers: { 'Authorization': 'Bearer ' + auth.token } });
             const dados = await res.json();
 
             tbody.innerHTML = '';
@@ -613,9 +876,10 @@
             return;
         }
 
-        const sucesso = await request('/api/participantes/manual', {
+        if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+        const sucesso = await request(`/api/user/events/${auth.eventId}/participantes/manual`, {
             method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
             body: JSON.stringify({ nome, telefone, grupo })
         }, null, null);
 
@@ -638,7 +902,8 @@
             confirmButtonText: 'Sim, apagar tudo!'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                await request('/api/participantes', { method: 'DELETE' }, null, null);
+                if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+                await request(`/api/user/events/${auth.eventId}/participantes`, { method: 'DELETE', headers: { 'Authorization': 'Bearer ' + auth.token } }, null, null);
                 carregarTabela();
             }
         });
@@ -655,8 +920,9 @@
             cancelButtonText: 'Cancelar'
         }).then((result) => {
             if (result.isConfirmed) {
+                if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
                 // Reutiliza a função request genérica
-                request('/api/testar', { method: 'POST' }, null, null);
+                request(`/api/user/events/${auth.eventId}/testar`, { method: 'POST', headers: { 'Authorization': 'Bearer ' + auth.token } }, null, null);
             }
         });
     }
@@ -664,7 +930,8 @@
     // --- Configuração: Template da mensagem de teste ---
     async function loadTestTemplate() {
         try {
-            const res = await fetch('/api/config/test-message');
+            if(!auth.token){ return; }
+            const res = await fetch('/api/config/test-message', { headers: { 'Authorization': 'Bearer ' + auth.token } });
             const data = await res.json();
             document.getElementById('testTemplate').value = data.template || '';
         } catch (e) {
@@ -674,9 +941,10 @@
 
     async function saveTestTemplate() {
         const template = document.getElementById('testTemplate').value;
+        if(!auth.token){ Swal.fire('Atenção', 'Faça login para salvar o template.', 'info'); return; }
         const ok = await request('/api/config/test-message', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
             body: JSON.stringify({ template })
         }, null, 'btnSaveTemplate');
         if (ok) {
@@ -691,7 +959,8 @@
     // --- Configuração: Template da mensagem do sorteio (OFICIAL) ---
     async function loadDrawTemplate() {
         try {
-            const res = await fetch('/api/config/draw-message');
+            if(!auth.token){ return; }
+            const res = await fetch('/api/config/draw-message', { headers: { 'Authorization': 'Bearer ' + auth.token } });
             const data = await res.json();
             document.getElementById('drawTemplate').value = data.template || '';
         } catch (e) {
@@ -701,9 +970,10 @@
 
     async function saveDrawTemplate() {
         const template = document.getElementById('drawTemplate').value;
+        if(!auth.token){ Swal.fire('Atenção', 'Faça login para salvar o template.', 'info'); return; }
         const ok = await request('/api/config/draw-message', {
             method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
+            headers: { 'Content-Type': 'application/json', 'Authorization': 'Bearer ' + auth.token },
             body: JSON.stringify({ template })
         }, null, 'btnSaveDrawTemplate');
         if (ok) {
@@ -722,8 +992,10 @@
             cancelButtonText: 'Cancelar'
         }).then(async (result) => {
             if (result.isConfirmed) {
-                const sucesso = await request('/api/participantes/confirmar-todos', {
-                    method: 'PUT'
+                if(!auth.token || !auth.eventId){ Swal.fire('Atenção', 'Faça login e selecione um evento.', 'info'); return; }
+                const sucesso = await request(`/api/user/events/${auth.eventId}/participantes/confirmar-todos`, {
+                    method: 'PUT',
+                    headers: { 'Authorization': 'Bearer ' + auth.token }
                 }, null, null);
 
                 if (sucesso) {
