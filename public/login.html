@@ -1,0 +1,153 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Login - Amigo Secreto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <style>
+        body {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            height: 100vh;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-family: 'Poppins', sans-serif;
+        }
+        .card-login {
+            border: none;
+            border-radius: 15px;
+            box-shadow: 0 15px 35px rgba(0,0,0,0.2);
+            width: 100%;
+            max-width: 400px;
+            padding: 2rem;
+        }
+        .btn-custom {
+            border-radius: 25px;
+            padding: 10px;
+            font-weight: 600;
+        }
+    </style>
+</head>
+<body>
+
+<div class="card card-login bg-white">
+    <div class="text-center mb-4">
+        <h1 class="text-primary"><i class="fa-solid fa-gift"></i></h1>
+        <h3>Bem-vindo</h3>
+        <p class="text-muted small">Gerenciador de Amigo Secreto</p>
+    </div>
+
+    <ul class="nav nav-pills nav-fill mb-3" id="pills-tab" role="tablist">
+        <li class="nav-item">
+            <button class="nav-link active" id="tab-login" data-bs-toggle="pill" data-bs-target="#pills-login" type="button">Entrar</button>
+        </li>
+        <li class="nav-item">
+            <button class="nav-link" id="tab-register" data-bs-toggle="pill" data-bs-target="#pills-register" type="button">Cadastrar</button>
+        </li>
+    </ul>
+
+    <div class="tab-content">
+        <div class="tab-pane fade show active" id="pills-login">
+            <form onsubmit="handleLogin(event)">
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-envelope"></i></span>
+                        <input type="email" id="loginEmail" class="form-control" required>
+                    </div>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Senha</label>
+                    <div class="input-group">
+                        <span class="input-group-text"><i class="fa-solid fa-lock"></i></span>
+                        <input type="password" id="loginPass" class="form-control" required>
+                    </div>
+                </div>
+                <button type="submit" class="btn btn-primary w-100 btn-custom">Acessar Sistema</button>
+            </form>
+        </div>
+
+        <div class="tab-pane fade" id="pills-register">
+            <form onsubmit="handleRegister(event)">
+                <div class="mb-3">
+                    <label class="form-label">Nome</label>
+                    <input type="text" id="regName" class="form-control" placeholder="Seu nome" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Email</label>
+                    <input type="email" id="regEmail" class="form-control" required>
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Senha</label>
+                    <input type="password" id="regPass" class="form-control" required>
+                </div>
+                <button type="submit" class="btn btn-success w-100 btn-custom">Criar Conta</button>
+            </form>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // Verifica se já está logado
+    if(localStorage.getItem('token')) {
+        window.location.href = '/dashboard.html';
+    }
+
+    async function handleLogin(e) {
+        e.preventDefault();
+        const email = document.getElementById('loginEmail').value;
+        const password = document.getElementById('loginPass').value;
+
+        try {
+            const res = await fetch('/api/auth/login', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ email, password })
+            });
+            const data = await res.json();
+
+            if(!res.ok) throw new Error(data.error);
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            window.location.href = '/dashboard.html';
+        } catch (err) {
+            Swal.fire('Erro', err.message, 'error');
+        }
+    }
+
+    async function handleRegister(e) {
+        e.preventDefault();
+        const name = document.getElementById('regName').value;
+        const email = document.getElementById('regEmail').value;
+        const password = document.getElementById('regPass').value;
+
+        try {
+            const res = await fetch('/api/auth/register', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name, email, password })
+            });
+            const data = await res.json();
+
+            if(!res.ok) throw new Error(data.error);
+
+            localStorage.setItem('token', data.token);
+            localStorage.setItem('user', JSON.stringify(data.user));
+
+            Swal.fire('Sucesso!', 'Conta criada com sucesso.', 'success').then(() => {
+                window.location.href = '/dashboard.html';
+            });
+        } catch (err) {
+            Swal.fire('Erro', err.message, 'error');
+        }
+    }
+</script>
+</body>
+</html>

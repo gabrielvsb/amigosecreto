@@ -1,74 +1,55 @@
 import * as mysqlConnector from './database/mysqlConnector.js';
 import * as dbOperations from './database/dbOperations.js';
 import Sorteio from "./Sorteio.js";
-import * as log from './util/log.js'
+import * as log from './util/log.js';
 
+// DEPRECIADO: Não use esta função, pois ela mistura todos os usuários.
+// Mantida apenas se houver algum script legado CLI usando.
 export async function realizarSorteio(){
-    const connection = await mysqlConnector.conectarMySQL();
-    try {
-        const participantes = await dbOperations.executarConsulta(connection, 'SELECT * FROM participantes');
-        if(participantes.length <= 0){
-            throw  'Não há nenhum registro de participantes cadastrados no banco de dados!';
-        }else{
-            log.gravarLog(` - ${participantes.length} pessoas estão participando!`);
-            log.gravarLog('- Sorteando. . .');
-            const sorteio = new Sorteio(participantes);
-            const resultado = sorteio.retornarResultado;
-
-            await dbOperations.executarTransacao(connection, async (trx) => {
-                await dbOperations.resetarTabela(trx, 'sorteio', false);
-                for (const registro of resultado) {
-                    const parametro = {
-                        id_participante: registro.pessoa.id,
-                        id_amigo: registro.amigosecreto.id
-                    };
-                    await dbOperations.inserir(trx, 'sorteio', parametro);
-                }
-            });
-            log.gravarLog(` - Sorteio finalizado. Registros salvos: ${resultado.length}.`);
-        }
-        return ' - Sorteio realizado!\n';
-    } finally {
-        await mysqlConnector.fecharConexaoMySQL(connection);
-    }
+    throw new Error("Função obsoleta. Use realizarSorteioPorEvento.");
 }
 
-// Novo: realiza sorteio por usuário e evento, salvando vínculos
+// CORRETO: Sorteio vinculado ao Usuário e Evento
 export async function realizarSorteioPorEvento(userId, eventId){
     if(!userId || !eventId){
-        throw 'Parâmetros inválidos: userId e eventId são obrigatórios.';
+        throw 'Erro de segurança: userId e eventId são obrigatórios.';
     }
     const connection = await mysqlConnector.conectarMySQL();
     try {
+        // SELECT filtrado por USER e EVENT
         const participantes = await dbOperations.executarConsulta(
             connection,
             'SELECT * FROM participantes WHERE user_id = ? AND event_id = ? ORDER BY id ASC',
             [userId, eventId]
         );
-        if(participantes.length <= 1){
+
+        if(participantes.length < 2){
             throw 'São necessários pelo menos 2 participantes neste evento para realizar o sorteio!';
         }
 
-        log.gravarLog(` - (${userId}/${eventId}) ${participantes.length} pessoas estão participando!`);
-        log.gravarLog('- Sorteando. . .');
+        log.gravarLog(` - (User: ${userId}, Event: ${eventId}) Iniciando sorteio com ${participantes.length} participantes.`);
+
         const sorteio = new Sorteio(participantes);
         const resultado = sorteio.retornarResultado;
 
         await dbOperations.executarTransacao(connection, async (trx) => {
-            // Limpa somente os resultados deste evento do usuário
+            // DELETE filtrado: apaga apenas o sorteio deste evento
             await dbOperations.executarConsulta(trx, 'DELETE FROM sorteio WHERE user_id = ? AND event_id = ?', [userId, eventId]);
+
             for (const registro of resultado) {
                 const parametro = {
                     id_participante: registro.pessoa.id,
                     id_amigo: registro.amigosecreto.id,
                     user_id: userId,
-                    event_id: eventId
+                    event_id: eventId,
+                    mensagem_enviada: 0 // Garante que reinicia o status de envio
                 };
                 await dbOperations.inserir(trx, 'sorteio', parametro);
             }
         });
-        log.gravarLog(` - Sorteio finalizado (${userId}/${eventId}). Registros salvos: ${resultado.length}.`);
-        return ' - Sorteio realizado para o evento!\n';
+
+        log.gravarLog(` - Sorteio finalizado com sucesso.`);
+        return 'Sorteio realizado e salvo com sucesso!';
     } finally {
         await mysqlConnector.fecharConexaoMySQL(connection);
     }

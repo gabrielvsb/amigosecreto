@@ -1,0 +1,650 @@
+<!DOCTYPE html>
+<html lang="pt-br">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Dashboard - Amigo Secreto</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@300;400;600&display=swap" rel="stylesheet">
+
+    <style>
+        body { font-family: 'Poppins', sans-serif; background: #f5f7fa; padding-top: 20px; }
+        .main-card { border-radius: 15px; box-shadow: 0 5px 15px rgba(0,0,0,0.05); margin-bottom: 20px; background: white; border: none; transition: transform 0.3s; }
+        .main-card:hover { transform: translateY(-3px); }
+        .step-icon { font-size: 2rem; margin-bottom: 15px; color: #0d6efd; }
+        .table-responsive { max-height: 400px; overflow-y: auto; }
+        .btn-custom { border-radius: 50px; padding: 8px 20px; font-weight: 500; }
+    </style>
+
+    <script>
+        const token = localStorage.getItem('token');
+        if (!token) {
+            window.location.href = '/login.html';
+        }
+    </script>
+</head>
+<body>
+
+<nav class="navbar navbar-expand-lg navbar-light bg-white shadow-sm fixed-top px-4">
+    <div class="container-fluid">
+        <a class="navbar-brand fw-bold text-primary" href="#"><i class="fa-solid fa-gift me-2"></i>Amigo Secreto</a>
+        <div class="d-flex align-items-center gap-3">
+            <span class="text-muted small d-none d-md-block" id="userWelcome"></span>
+            <button class="btn btn-outline-danger btn-sm" onclick="logout()">
+                <i class="fa-solid fa-right-from-bracket"></i> Sair
+            </button>
+        </div>
+    </div>
+</nav>
+
+<div class="container" style="margin-top: 70px;">
+
+    <div class="row justify-content-center mb-4">
+        <div class="col-md-10">
+            <div class="card main-card p-3 border-primary border-1">
+                <div class="d-flex justify-content-between align-items-center flex-wrap gap-2">
+                    <div class="d-flex align-items-center gap-2">
+                        <label class="fw-bold text-muted small me-1">Evento:</label>
+                        <select id="eventSelect" class="form-select form-select-sm" style="min-width: 250px;"></select>
+                        <button class="btn btn-outline-secondary btn-sm" onclick="abrirConfiguracoes()" title="Configurações do Evento (Nome, Templates, Excluir)">
+                            <i class="fa-solid fa-gear"></i>
+                        </button>
+                    </div>
+                    <button class="btn btn-primary btn-sm rounded-pill px-3" onclick="criarEvento()">
+                        <i class="fa-solid fa-plus"></i> Novo Evento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="row justify-content-center g-4 mb-4">
+
+        <div class="col-md-4">
+            <div class="card main-card h-100 p-3 text-center">
+                <div class="step-icon"><i class="fa-solid fa-users"></i></div>
+                <h5 class="card-title">1. Participantes</h5>
+                <p class="text-muted small">Importe via CSV ou gerencie manualmente.</p>
+
+                <div class="mb-3">
+                    <input class="form-control form-control-sm" type="file" id="csvFile" accept=".csv">
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button onclick="uploadCSV()" id="btnUpload" class="btn btn-primary btn-sm">
+                        <i class="fa-solid fa-cloud-arrow-up me-1"></i> Enviar CSV
+                    </button>
+                    <button onclick="abrirParticipantes()" class="btn btn-outline-primary btn-sm">
+                        <i class="fa-solid fa-list-check me-1"></i> Gerenciar Lista
+                    </button>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card main-card h-100 p-3 text-center">
+                <div class="step-icon text-warning"><i class="fa-solid fa-shuffle"></i></div>
+                <h5 class="card-title">2. Sorteio</h5>
+                <p class="text-muted small">Realize o sorteio e visualize os pares.</p>
+                <div class="mb-4"></div> <div class="d-grid gap-2">
+                <button onclick="realizarSorteio()" id="btnSorteio" class="btn btn-warning text-white btn-sm">
+                    <i class="fa-solid fa-dice me-1"></i> Realizar Sorteio
+                </button>
+                <button onclick="abrirResultado()" class="btn btn-outline-warning text-dark btn-sm">
+                    <i class="fa-solid fa-eye me-1"></i> Ver Resultado
+                </button>
+            </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card main-card h-100 p-3 text-center">
+                <div class="step-icon text-success"><i class="fa-brands fa-whatsapp"></i></div>
+                <h5 class="card-title">3. Envio</h5>
+                <p class="text-muted small">Dispare as mensagens para os participantes.</p>
+
+                <div class="mb-3">
+                    <a href="http://localhost:3000/dashboard" target="_blank" class="text-decoration-none small">
+                        <i class="fa-solid fa-qrcode me-1"></i> Painel WAHA (Scan QR)
+                    </a>
+                </div>
+
+                <div class="d-grid gap-2">
+                    <button onclick="enviarMensagens()" id="btnEnvio" class="btn btn-success btn-sm">
+                        <i class="fa-regular fa-paper-plane me-1"></i> Enviar Mensagens
+                    </button>
+                </div>
+                <div id="statusEnvio" class="text-success small mt-2 fw-bold"></div>
+            </div>
+        </div>
+    </div>
+
+</div>
+
+<div class="modal fade" id="modalConfig" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-gear me-2"></i>Configurações do Evento</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+
+                <div class="mb-4">
+                    <label class="form-label fw-bold">Nome do Evento</label>
+                    <div class="input-group">
+                        <input type="text" id="editEventName" class="form-control" placeholder="Ex: Natal da Família 2025">
+                        <button class="btn btn-outline-primary" onclick="salvarEventoNome()">
+                            <i class="fa-solid fa-floppy-disk me-1"></i> Renomear
+                        </button>
+                    </div>
+                </div>
+
+                <hr>
+
+                <h6 class="fw-bold mb-3"><i class="fa-solid fa-message me-2"></i>Personalizar Mensagens (WhatsApp)</h6>
+
+                <div class="row g-3">
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-light border-0">
+                            <div class="card-body">
+                                <label class="form-label fw-bold text-primary">Template de Teste</label>
+                                <p class="small text-muted mb-2">Usado no botão "Teste Geral".<br>Variáveis: <code>{{nome}}</code>, <code>{{telefone}}</code>.</p>
+                                <textarea id="tplTest" class="form-control form-control-sm" rows="5"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card h-100 bg-light border-0">
+                            <div class="card-body">
+                                <label class="form-label fw-bold text-success">Template do Sorteio (Oficial)</label>
+                                <p class="small text-muted mb-2">Usado no botão "Enviar Mensagens".<br>Variáveis: <code>{{participante}}</code>, <code>{{amigo}}</code>.</p>
+                                <textarea id="tplDraw" class="form-control form-control-sm" rows="5"></textarea>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="mt-3 text-end">
+                    <button onclick="salvarTemplates()" class="btn btn-success">
+                        <i class="fa-solid fa-check me-1"></i> Salvar Templates
+                    </button>
+                </div>
+
+                <hr class="my-4">
+
+                <div class="alert alert-danger d-flex justify-content-between align-items-center mb-0">
+                    <div>
+                        <strong>Zona de Perigo:</strong> Excluir este evento apagará todos os participantes e resultados vinculados.
+                    </div>
+                    <button onclick="excluirEvento()" class="btn btn-danger btn-sm">
+                        <i class="fa-solid fa-trash me-1"></i> Excluir Evento
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalParticipantes" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-users me-2"></i>Participantes</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="card mb-3 bg-light border-0">
+                    <div class="card-body p-3">
+                        <h6 class="card-subtitle mb-2 text-muted fw-bold small">Adicionar Novo</h6>
+                        <div class="row g-2">
+                            <div class="col-md-4"><input type="text" id="novoNome" class="form-control form-control-sm" placeholder="Nome"></div>
+                            <div class="col-md-4"><input type="text" id="novoTelefone" class="form-control form-control-sm" placeholder="Telefone (com DDD)"></div>
+                            <div class="col-md-3"><input type="text" id="novoGrupo" class="form-control form-control-sm" placeholder="Grupo (Opcional)"></div>
+                            <div class="col-md-1"><button onclick="adicionarManual()" class="btn btn-primary btn-sm w-100"><i class="fa-solid fa-plus"></i></button></div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="d-flex justify-content-between align-items-center mb-2">
+                    <span class="badge bg-secondary" id="totalParticipantesBadge">0 participantes</span>
+                    <div>
+                        <button onclick="confirmarTodos()" class="btn btn-outline-success btn-sm me-1" title="Marcar todos como confirmados"><i class="fa-solid fa-check-double"></i> Confirmar Todos</button>
+                        <button onclick="testarDisparos()" class="btn btn-outline-primary btn-sm me-1" title="Envia mensagem de teste para todos"><i class="fa-solid fa-paper-plane"></i> Teste Geral</button>
+                        <button onclick="limparTudo()" class="btn btn-outline-danger btn-sm" title="Apagar todos os participantes"><i class="fa-solid fa-trash"></i> Limpar Lista</button>
+                    </div>
+                </div>
+
+                <div class="table-responsive border rounded bg-white">
+                    <table class="table table-striped table-hover mb-0 align-middle small">
+                        <thead class="table-dark sticky-top">
+                        <tr>
+                            <th>Nome</th>
+                            <th>Telefone</th>
+                            <th>Grupo</th>
+                            <th class="text-center">Status</th>
+                            <th class="text-end">Ações</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabelaParticipantesBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<div class="modal fade" id="modalSorteio" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="fa-solid fa-gift me-2"></i>Resultado do Sorteio</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info py-2 small mb-3">
+                    <i class="fa-solid fa-circle-info me-2"></i>Este é o resultado oficial salvo no banco de dados.
+                </div>
+                <div class="table-responsive border rounded bg-white">
+                    <table class="table table-striped table-hover mb-0 align-middle small">
+                        <thead class="table-dark sticky-top">
+                        <tr>
+                            <th>Participante</th>
+                            <th>Amigo Secreto</th>
+                            <th class="text-center">Envio WhatsApp</th>
+                        </tr>
+                        </thead>
+                        <tbody id="tabelaSorteioBody"></tbody>
+                    </table>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/sweetalert2@11"></script>
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+
+<script>
+    // --- LÓGICA DE AUTENTICAÇÃO E INICIALIZAÇÃO ---
+    const auth = {
+        token: localStorage.getItem('token'),
+        user: JSON.parse(localStorage.getItem('user') || '{}'),
+        eventId: localStorage.getItem('eventId')
+    };
+
+    // Exibe nome do usuário
+    document.getElementById('userWelcome').textContent = `Olá, ${auth.user.name || 'Usuário'}`;
+
+    function logout() {
+        localStorage.clear();
+        window.location.href = '/login.html';
+    }
+
+    // Helper genérico para requisições com Auth Bearer
+    async function request(url, options = {}, statusId = null, btnId = null) {
+        if(btnId) {
+            const btn = document.getElementById(btnId);
+            btn.disabled = true;
+            // Salva texto original
+            if(!btn.getAttribute('data-original')) btn.setAttribute('data-original', btn.innerHTML);
+            btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i>';
+        }
+        if(statusId) document.getElementById(statusId).textContent = 'Processando...';
+
+        options.headers = { ...options.headers, 'Authorization': 'Bearer ' + auth.token };
+
+        try {
+            const res = await fetch(url, options);
+
+            if(res.status === 401) { logout(); return null; } // Token expirado
+
+            const data = await res.json();
+
+            if(!res.ok) {
+                throw new Error(data.error || 'Erro desconhecido');
+            }
+
+            if(statusId) document.getElementById(statusId).textContent = 'Concluído!';
+
+            // Só exibe modal de sucesso para POST/PUT/DELETE, não para GET
+            if(options.method && options.method !== 'GET') {
+                Swal.fire({
+                    title: 'Sucesso',
+                    text: data.message || 'Operação realizada com sucesso.',
+                    icon: 'success',
+                    timer: 1500,
+                    showConfirmButton: false
+                });
+            }
+
+            return data;
+
+        } catch (e) {
+            console.error(e);
+            Swal.fire('Erro', e.message, 'error');
+            if(statusId) document.getElementById(statusId).textContent = 'Erro na operação.';
+            return null;
+        } finally {
+            if(btnId) {
+                const btn = document.getElementById(btnId);
+                btn.innerHTML = btn.getAttribute('data-original');
+                btn.disabled = false;
+            }
+        }
+    }
+
+    // --- GERENCIAMENTO DE EVENTOS ---
+
+    async function carregarEventos() {
+        const data = await request('/api/user/events');
+        const select = document.getElementById('eventSelect');
+        select.innerHTML = '';
+
+        if (data && data.length > 0) {
+            data.forEach(ev => {
+                const opt = document.createElement('option');
+                opt.value = ev.id;
+                opt.textContent = ev.name;
+                select.appendChild(opt);
+            });
+
+            // Tenta manter o evento selecionado, senão pega o primeiro
+            if (auth.eventId && data.some(e => String(e.id) === String(auth.eventId))) {
+                select.value = auth.eventId;
+            } else {
+                select.value = data[0].id;
+                setEventId(data[0].id);
+            }
+        } else {
+            select.innerHTML = '<option value="">Nenhum evento. Crie um novo.</option>';
+            setEventId(null);
+        }
+
+        select.onchange = () => setEventId(select.value);
+    }
+
+    function setEventId(id) {
+        auth.eventId = id;
+        if(id) localStorage.setItem('eventId', id);
+        else localStorage.removeItem('eventId');
+    }
+
+    async function criarEvento() {
+        const { value: nome } = await Swal.fire({
+            title: 'Novo Evento',
+            input: 'text',
+            inputLabel: 'Nome do evento',
+            inputPlaceholder: 'Ex: Amigo Secreto 2025',
+            showCancelButton: true
+        });
+
+        if (nome) {
+            const res = await request('/api/user/events', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ name: nome })
+            });
+
+            if (res) {
+                await carregarEventos();
+                // Seleciona o novo evento criado
+                if(res.event && res.event.id) {
+                    const select = document.getElementById('eventSelect');
+                    select.value = res.event.id;
+                    setEventId(res.event.id);
+                }
+            }
+        }
+    }
+
+    // --- CONFIGURAÇÕES DO EVENTO (Modal) ---
+    const modalConfigEl = document.getElementById('modalConfig');
+    const modalConfig = new bootstrap.Modal(modalConfigEl);
+
+    async function abrirConfiguracoes() {
+        if(!auth.eventId) return Swal.fire('Aviso', 'Selecione ou crie um evento primeiro.', 'info');
+
+        const evt = await request(`/api/user/events/${auth.eventId}`);
+        if(evt) {
+            document.getElementById('editEventName').value = evt.name;
+            // Carrega templates ou vazio
+            document.getElementById('tplDraw').value = evt.msg_template_draw || '';
+            document.getElementById('tplTest').value = evt.msg_template_test || '';
+            modalConfig.show();
+        }
+    }
+
+    async function salvarEventoNome() {
+        const name = document.getElementById('editEventName').value;
+        if(!name.trim()) return Swal.fire('Erro', 'Nome inválido', 'warning');
+
+        const res = await request(`/api/user/events/${auth.eventId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ name })
+        });
+
+        if(res) carregarEventos(); // Atualiza o select
+    }
+
+    async function salvarTemplates() {
+        const msg_template_draw = document.getElementById('tplDraw').value;
+        const msg_template_test = document.getElementById('tplTest').value;
+
+        await request(`/api/user/events/${auth.eventId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ msg_template_draw, msg_template_test })
+        });
+    }
+
+    async function excluirEvento() {
+        const result = await Swal.fire({
+            title: 'Tem certeza?',
+            text: "Você não poderá reverter isso! Todos os participantes e resultados deste evento serão apagados.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Sim, excluir evento!'
+        });
+
+        if (result.isConfirmed) {
+            const res = await request(`/api/user/events/${auth.eventId}`, { method: 'DELETE' });
+            if (res) {
+                auth.eventId = null;
+                modalConfig.hide();
+                carregarEventos();
+            }
+        }
+    }
+
+    // --- AÇÕES PRINCIPAIS (Cards) ---
+
+    function uploadCSV() {
+        if(!auth.eventId) return Swal.fire('Aviso', 'Selecione um evento.', 'warning');
+        const fileInput = document.getElementById('csvFile');
+        if (fileInput.files.length === 0) return Swal.fire('Aviso', 'Selecione um arquivo CSV.', 'warning');
+
+        const formData = new FormData();
+        formData.append('arquivoCSV', fileInput.files[0]);
+
+        request(`/api/user/events/${auth.eventId}/participantes`, {
+            method: 'POST',
+            body: formData
+        }, 'statusUpload', 'btnUpload');
+    }
+
+    function realizarSorteio() {
+        if(!auth.eventId) return Swal.fire('Aviso', 'Selecione um evento.', 'warning');
+        request(`/api/user/events/${auth.eventId}/sortear`, {
+            method: 'POST'
+        }, 'statusSorteio', 'btnSorteio'); // Nota: statusSorteio não existe no HTML novo, mas a função ignora se null
+    }
+
+    function enviarMensagens() {
+        if(!auth.eventId) return Swal.fire('Aviso', 'Selecione um evento.', 'warning');
+        Swal.fire({
+            title: 'Enviar Mensagens?',
+            text: "Isso enviará o resultado oficial para todos os participantes via WhatsApp.",
+            icon: 'warning',
+            showCancelButton: true,
+            confirmButtonColor: '#198754',
+            confirmButtonText: 'Sim, enviar!'
+        }).then((result) => {
+            if (result.isConfirmed) {
+                request(`/api/user/events/${auth.eventId}/enviar`, {
+                    method: 'POST'
+                }, 'statusEnvio', 'btnEnvio');
+            }
+        });
+    }
+
+    // --- GERENCIAR PARTICIPANTES (Modal) ---
+    const modalParticipantes = new bootstrap.Modal(document.getElementById('modalParticipantes'));
+
+    async function abrirParticipantes() {
+        if(!auth.eventId) return Swal.fire('Aviso', 'Selecione um evento.', 'warning');
+        modalParticipantes.show();
+        carregarTabela();
+    }
+
+    async function carregarTabela() {
+        const tbody = document.getElementById('tabelaParticipantesBody');
+        tbody.innerHTML = '<tr><td colspan="5" class="text-center">Carregando...</td></tr>';
+
+        const dados = await request(`/api/user/events/${auth.eventId}/participantes`, { method: 'GET' }); // Usando GET explicito, auth ok
+        tbody.innerHTML = '';
+
+        if(!dados || dados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="5" class="text-center text-muted">Nenhum participante encontrado.</td></tr>';
+            document.getElementById('totalParticipantesBadge').textContent = '0 participantes';
+            return;
+        }
+
+        document.getElementById('totalParticipantesBadge').textContent = `${dados.length} participantes`;
+
+        dados.forEach(p => {
+            const badgeClass = p.confirmacao_recebimento ? 'bg-success' : 'bg-warning text-dark';
+            const statusTexto = p.confirmacao_recebimento ? 'Confirmado' : 'Pendente';
+
+            tbody.innerHTML += `
+                <tr>
+                    <td>${p.nome}</td>
+                    <td>${p.telefone}</td>
+                    <td>${p.grupo || '-'}</td>
+                    <td class="text-center"><span class="badge ${badgeClass}">${statusTexto}</span></td>
+                    <td class="text-end">
+                        <button class="btn btn-sm btn-outline-primary" onclick="editarParticipante(${p.id}, ${p.confirmacao_recebimento})" title="Alternar Confirmação">
+                            <i class="fa-solid fa-rotate"></i>
+                        </button>
+                    </td>
+                </tr>
+            `;
+        });
+    }
+
+    async function adicionarManual() {
+        const nome = document.getElementById('novoNome').value;
+        const telefone = document.getElementById('novoTelefone').value;
+        const grupo = document.getElementById('novoGrupo').value;
+
+        if(!nome || !telefone) return Swal.fire('Erro', 'Nome e Telefone são obrigatórios', 'warning');
+
+        const res = await request(`/api/user/events/${auth.eventId}/participantes/manual`, {
+            method: 'POST',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ nome, telefone, grupo })
+        });
+
+        if(res) {
+            document.getElementById('novoNome').value = '';
+            document.getElementById('novoTelefone').value = '';
+            document.getElementById('novoGrupo').value = '';
+            carregarTabela();
+        }
+    }
+
+    async function editarParticipante(id, statusAtual) {
+        // Alterna status de confirmação simples
+        const novoStatus = statusAtual ? 0 : 1;
+        const res = await request(`/api/user/events/${auth.eventId}/participantes/${id}`, {
+            method: 'PUT',
+            headers: {'Content-Type': 'application/json'},
+            body: JSON.stringify({ confirmacao_recebimento: novoStatus })
+        });
+        if(res) carregarTabela();
+    }
+
+    function confirmarTodos() {
+        Swal.fire({
+            title: 'Confirmar Todos?',
+            text: 'Marcar todos como confirmados manualmente?',
+            showCancelButton: true,
+            confirmButtonText: 'Sim'
+        }).then(async (r) => {
+            if(r.isConfirmed) {
+                const res = await request(`/api/user/events/${auth.eventId}/participantes/confirmar-todos`, { method: 'PUT' });
+                if(res) carregarTabela();
+            }
+        });
+    }
+
+    function testarDisparos() {
+        Swal.fire({
+            title: 'Teste Geral',
+            text: 'Enviar mensagem de teste para todos os pendentes?',
+            showCancelButton: true,
+            confirmButtonText: 'Enviar'
+        }).then((r) => {
+            if(r.isConfirmed) request(`/api/user/events/${auth.eventId}/testar`, { method: 'POST' });
+        });
+    }
+
+    function limparTudo() {
+        Swal.fire({
+            title: 'Limpar Tudo?',
+            text: 'Isso apaga TODOS os participantes deste evento.',
+            icon: 'error',
+            showCancelButton: true,
+            confirmButtonColor: '#d33',
+            confirmButtonText: 'Apagar'
+        }).then(async (r) => {
+            if(r.isConfirmed) {
+                const res = await request(`/api/user/events/${auth.eventId}/participantes`, { method: 'DELETE' });
+                if(res) carregarTabela();
+            }
+        });
+    }
+
+    // --- RESULTADO (Modal) ---
+    const modalSorteio = new bootstrap.Modal(document.getElementById('modalSorteio'));
+
+    async function abrirResultado() {
+        if(!auth.eventId) return Swal.fire('Aviso', 'Selecione um evento.', 'warning');
+        modalSorteio.show();
+
+        const tbody = document.getElementById('tabelaSorteioBody');
+        tbody.innerHTML = '<tr><td colspan="3" class="text-center">Carregando...</td></tr>';
+
+        const dados = await request(`/api/user/events/${auth.eventId}/sorteio`, { method: 'GET' });
+        tbody.innerHTML = '';
+
+        if(!dados || dados.length === 0) {
+            tbody.innerHTML = '<tr><td colspan="3" class="text-center text-muted">Sorteio ainda não realizado.</td></tr>';
+            return;
+        }
+
+        dados.forEach(r => {
+            const envio = r.mensagem_enviada ? '<span class="badge bg-success">Enviado</span>' : '<span class="badge bg-secondary">Pendente</span>';
+            tbody.innerHTML += `<tr><td>${r.participante_nome}</td><td>${r.amigo_nome}</td><td class="text-center">${envio}</td></tr>`;
+        });
+    }
+
+    // Inicialização
+    carregarEventos();
+
+</script>
+</body>
+</html>
