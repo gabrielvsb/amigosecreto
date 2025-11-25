@@ -11,8 +11,13 @@ Um gerenciador de Amigo Secreto com Node.js, Express, MySQL e integração com W
 - Logs de execução em log/events.log.
 
 ### Arquitetura
-- API: Node.js + Express (src/)
-- Banco: MySQL (init.sql e tabela participantes/sorteio)
+- API: Node.js + Express (src/) agora organizada em padrão MVC + princípios SOLID
+  - controllers/: orquestram a entrada HTTP e chamam serviços (ex.: authController, eventsController)
+  - routes/: definem as rotas e conectam aos controllers (ex.: authRoutes, eventsRoutes, webhookRoutes)
+  - services/: regras de negócio e integrações (ex.: eventService, wahaService)
+  - database/: acesso a dados (mysqlConnector, dbOperations)
+  - util/ e config/: utilitários e configuração
+- Banco: MySQL (init.sql e tabelas participantes/sorteio/events/users)
 - WhatsApp: WAHA (devlikeapro/waha)
 - Orquestração opcional: Docker Compose
 
@@ -87,31 +92,33 @@ Observações sobre telefone:
 
 
 Endpoints principais (REST)
-- POST /api/participantes
-  - Multipart form-data com o arquivo em arquivoCSV.
-  - Ação: Lê o CSV, limpa as tabelas participantes e sorteio, e salva os participantes.
+- Autenticação
+  - POST /api/auth/register → cria usuário e retorna token JWT
+  - POST /api/auth/login → autentica e retorna token JWT
 
-- GET /api/participantes/listar
-  - Retorna a lista de participantes e status de confirmação.
+- Webhook WAHA
+  - POST /api/webhook → recebe mensagens; ao receber "OK", marca confirmacao_recebimento = 1 para o telefone
 
-- POST /api/participantes/manual
-  - JSON body: { "nome": "...", "telefone": "...", "grupo": "opcional" }
-  - Ação: Adiciona um participante manualmente.
+- Gestão de eventos (JWT obrigatório)
+  - GET  /api/user/events → lista eventos do usuário
+  - GET  /api/user/events/:id → detalhes do evento
+  - POST /api/user/events → cria evento { name }
+  - PUT  /api/user/events/:id → atualiza { name?, msg_template_draw?, msg_template_test? }
+  - DELETE /api/user/events/:id → remove evento e dados relacionados
 
-- DELETE /api/participantes
-  - Ação: Limpa as tabelas sorteio e participantes.
+- Participantes (por evento)
+  - POST /api/user/events/:eventId/participantes → upload CSV (campo arquivoCSV)
+  - GET  /api/user/events/:eventId/participantes → lista participantes
+  - POST /api/user/events/:eventId/participantes/manual → adiciona { nome, telefone, grupo? }
+  - PUT  /api/user/events/:eventId/participantes/:id → atualiza flags (ex.: { confirmacao_recebimento })
+  - PUT  /api/user/events/:eventId/participantes/confirmar-todos → marca todos como confirmados
+  - DELETE /api/user/events/:eventId/participantes → limpa participantes e sorteio do evento
 
-- POST /api/sortear
-  - Ação: Executa o sorteio e grava os pares.
-
-- POST /api/enviar
-  - Ação: Envia as mensagens dos pares ainda não enviadas via WAHA e marca como enviadas.
-
-- POST /api/testar
-  - Ação: Envia uma mensagem de teste (texto simples) para todos os participantes, instruindo a responder “OK”.
-
-- POST /api/webhook
-  - Usado pelo WAHA para eventos de mensagem. Quando o participante responde “OK”, o sistema registra a confirmação (confirmacao_recebimento = 1) para aquele telefone.
+- Sorteio e envio (por evento)
+  - POST /api/user/events/:eventId/sortear → executa sorteio
+  - GET  /api/user/events/:eventId/sorteio → lista resultado do sorteio
+  - POST /api/user/events/:eventId/enviar → envia mensagens do sorteio pendentes
+  - POST /api/user/events/:eventId/testar → envia mensagem de teste para números com pendência de confirmação
 
 Frontend
 O frontend estático (Bootstrap) é servido pela própria API:
