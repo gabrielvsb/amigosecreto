@@ -1,0 +1,73 @@
+generator client {
+  provider = "prisma-client-js"
+  binaryTargets = ["native", "linux-musl-openssl-3.0.x"]
+}
+
+datasource db {
+  provider = "mysql"
+  url      = env("DATABASE_URL")
+}
+
+model User {
+  id            Int             @id @default(autoincrement())
+  name          String?         @db.VarChar(100)
+  email         String          @unique @db.VarChar(255)
+  password_hash String          @db.VarChar(255)
+  created_at    DateTime?       @default(now())
+
+  events        Event[]
+  participantes Participant[]
+  sorteios      Sorteio[]
+
+  @@map("users") // Mapeia para a tabela existente 'users'
+}
+
+model Event {
+  id                Int       @id @default(autoincrement())
+  user_id           Int
+  name              String    @db.VarChar(255)
+  msg_template_draw String?   @db.Text
+  msg_template_test String?   @db.Text
+  created_at        DateTime? @default(now())
+
+  user          User          @relation(fields: [user_id], references: [id], onDelete: Cascade)
+  participantes Participant[]
+  sorteios      Sorteio[]
+
+  @@map("events")
+}
+
+model Participant {
+  id                      Int      @id @default(autoincrement())
+  nome                    String   @db.VarChar(255)
+  telefone                String?  @db.VarChar(50)
+  grupo                   String?  @db.VarChar(100)
+  confirmacao_recebimento Int?     @default(0) @db.TinyInt // Prisma lê TINYINT como Int ou Boolean
+  user_id                 Int?
+  event_id                Int?
+
+  user  User?  @relation(fields: [user_id], references: [id])
+  event Event? @relation(fields: [event_id], references: [id], onDelete: Cascade)
+
+  // Relações do sorteio (quem tira e quem é tirado)
+  sorteios_como_participante Sorteio[] @relation("SorteioParticipante")
+  sorteios_como_amigo        Sorteio[] @relation("SorteioAmigo")
+
+  @@map("participantes")
+}
+
+model Sorteio {
+  id               Int  @id @default(autoincrement())
+  id_participante  Int
+  id_amigo         Int
+  mensagem_enviada Int? @default(0) @db.TinyInt
+  user_id          Int?
+  event_id         Int?
+
+  participante Participant @relation("SorteioParticipante", fields: [id_participante], references: [id], onDelete: Cascade)
+  amigo        Participant @relation("SorteioAmigo", fields: [id_amigo], references: [id], onDelete: Cascade)
+  event        Event?      @relation(fields: [event_id], references: [id], onDelete: Cascade)
+  user         User?       @relation(fields: [user_id], references: [id])
+
+  @@map("sorteio")
+}

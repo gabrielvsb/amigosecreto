@@ -1,16 +1,19 @@
 {
   "name": "amigo_secreto",
-  "version": "2.0.0",
+  "version": "2.1.0",
   "description": "Um projeto para brincar de amigo secreto!",
   "main": "index.js",
   "type": "module",
   "scripts": {
     "test": "echo \"Error: no test specified\" && exit 1",
-    "start": "node src/server.js"
+    "start": "node src/server.js",
+    "prisma:generate": "prisma generate",
+    "prisma:push": "prisma db push"
   },
   "author": "gabrielvsb/amigosecreto_v1",
   "license": "ISC",
   "dependencies": {
+    "@prisma/client": "^5.7.0",
     "csv-parser": "^3.2.0",
     "mysql2": "^3.15.3",
     "express": "^5.1.0",
@@ -20,5 +23,8 @@
     "dotenv": "^17.2.3",
     "bcryptjs": "^2.4.3",
     "jsonwebtoken": "^9.0.2"
+  },
+  "devDependencies": {
+    "prisma": "^5.7.0"
   }
 }
