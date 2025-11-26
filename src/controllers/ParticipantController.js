@@ -1,7 +1,8 @@
 import { participantService } from "../container.js";
+import {AppError} from "../util/AppError.js";
 
 export async function uploadParticipantes(req, res) {
-    if (!req.file) throw new Error('Arquivo CSV obrigatório.');
+    if (!req.file) throw new AppError('Arquivo CSV obrigatório.');
     const msg = await participantService.importFromCSV(req.file.path, req.user.id, req.params.eventId);
     res.json({ message: msg });
 }
@@ -21,7 +22,7 @@ export async function updateParticipante(req, res) {
     res.json({ message: 'Atualizado.' });
 }
 
-export async function confirmarTodos(req, res) {
+export async function confirmAll(req, res) {
     const msg = await participantService.confirmAll(req.user.id, req.params.eventId);
     res.json({ message: msg });
 }

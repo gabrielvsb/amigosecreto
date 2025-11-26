@@ -79,6 +79,7 @@
                         <i class="fa-solid fa-list-check me-1"></i> Gerenciar Lista
                     </button>
                 </div>
+                <div id="statusUpload" class="text-primary small mt-2 fw-bold"></div>
             </div>
         </div>
 
@@ -87,14 +88,16 @@
                 <div class="step-icon text-warning"><i class="fa-solid fa-shuffle"></i></div>
                 <h5 class="card-title">2. Sorteio</h5>
                 <p class="text-muted small">Realize o sorteio e visualize os pares.</p>
-                <div class="mb-4"></div> <div class="d-grid gap-2">
-                <button onclick="realizarSorteio()" id="btnSorteio" class="btn btn-warning text-white btn-sm">
-                    <i class="fa-solid fa-dice me-1"></i> Realizar Sorteio
-                </button>
-                <button onclick="abrirResultado()" class="btn btn-outline-warning text-dark btn-sm">
-                    <i class="fa-solid fa-eye me-1"></i> Ver Resultado
-                </button>
-            </div>
+                <div class="mb-4"></div>
+                <div class="d-grid gap-2">
+                    <button onclick="realizarSorteio()" id="btnSorteio" class="btn btn-warning text-white btn-sm">
+                        <i class="fa-solid fa-dice me-1"></i> Realizar Sorteio
+                    </button>
+                    <button onclick="abrirResultado()" class="btn btn-outline-warning text-dark btn-sm">
+                        <i class="fa-solid fa-eye me-1"></i> Ver Resultado
+                    </button>
+                </div>
+                <div id="statusSorteio" class="text-success small mt-2 fw-bold"></div>
             </div>
         </div>
 
@@ -267,10 +270,23 @@
 <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
 
 <script>
-    // --- LÓGICA DE AUTENTICAÇÃO E INICIALIZAÇÃO ---
+    function getSafeUser() {
+        try {
+            const u = localStorage.getItem('user');
+            // Verifica se existe e não é a string "undefined"
+            if (u && u !== 'undefined') {
+                return JSON.parse(u);
+            }
+        } catch (e) {
+            console.error('Erro ao ler usuário:', e);
+            localStorage.removeItem('user'); // Limpa o dado corrompido
+        }
+        return {};
+    }
+
     const auth = {
         token: localStorage.getItem('token'),
-        user: JSON.parse(localStorage.getItem('user') || '{}'),
+        user: getSafeUser(),
         eventId: localStorage.getItem('eventId')
     };
 

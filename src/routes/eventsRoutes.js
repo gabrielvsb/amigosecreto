@@ -9,6 +9,7 @@ import * as EventController from '../controllers/EventController.js';
 import * as ParticipantController from '../controllers/ParticipantController.js';
 import * as DrawController from '../controllers/DrawController.js';
 import * as NotificationController from '../controllers/NotificationController.js';
+import {confirmAll} from "../controllers/ParticipantController.js";
 
 // Configuração de upload
 const uploadDir = path.join(process.cwd(), 'uploads');
@@ -32,8 +33,8 @@ router.delete('/events/:id', EventController.deleteEvent);
 router.post('/events/:eventId/participantes', upload.single('arquivoCSV'), ParticipantController.uploadParticipantes);
 router.get('/events/:eventId/participantes', ParticipantController.listParticipantes);
 router.post('/events/:eventId/participantes/manual', ParticipantController.addParticipanteManual);
+router.put('/events/:eventId/participantes/confirmar-todos', ParticipantController.confirmAll);
 router.put('/events/:eventId/participantes/:id', ParticipantController.updateParticipante);
-router.put('/events/:eventId/participantes/confirmar-todos', ParticipantController.confirmarTodos);
 router.delete('/events/:eventId/participantes', ParticipantController.deleteParticipantes);
 
 // --- Rotas de Sorteio ---

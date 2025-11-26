@@ -34,6 +34,7 @@ export default class ParticipantService {
         await this.eventService.getById(eventId, userId);
 
         const dadosCSV = await lerCSV(filePath);
+        console.log(dadosCSV);
         if (dadosCSV.length === 0) throw new AppError('Arquivo CSV vazio ou inválido.');
 
         const participantesParaSalvar = [];
