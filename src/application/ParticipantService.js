@@ -1,41 +1,42 @@
-// src/application/ParticipantService.js
 import fs from 'fs';
 import { formatarTelefone } from '../util/telefone.js';
-import { lerCSV } from '../util/csvReader.js'; // Reutilizando seu utilitário existente
-import ParticipantRepository from '../infrastructure/database/repositories/ParticipantRepository.js';
-import EventService from './EventService.js';
+import { lerCSV } from '../util/csvReader.js';
+import { AppError } from '../util/AppError.js';
 
-class ParticipantService {
+export default class ParticipantService {
+
+    constructor(participantRepository, eventService) {
+        this.participantRepository = participantRepository;
+        this.eventService = eventService; // Injeta outro Service
+    }
 
     async list(eventId, userId) {
-        await EventService.getById(eventId, userId); // Valida acesso
-        return await ParticipantRepository.listByEvent(eventId);
+        await this.eventService.getById(eventId, userId);
+        return await this.participantRepository.listByEvent(eventId);
     }
 
     async addManual(userId, eventId, { nome, telefone, grupo }) {
-        await EventService.getById(eventId, userId);
+        await this.eventService.getById(eventId, userId);
 
         const telFormatado = formatarTelefone(telefone);
-        if (!telFormatado) throw new Error('Telefone inválido.');
+        if (!telFormatado) throw new AppError('Telefone inválido.');
 
-        return await ParticipantRepository.create({
+        return await this.participantRepository.create({
             nome,
             telefone: telFormatado,
             grupo: grupo || null,
             user_id: userId,
-            event_id: eventId
+            event_id: parseInt(eventId)
         });
     }
 
     async importFromCSV(filePath, userId, eventId) {
-        await EventService.getById(eventId, userId);
+        await this.eventService.getById(eventId, userId);
 
         const dadosCSV = await lerCSV(filePath);
-        if (dadosCSV.length === 0) throw new Error('Arquivo CSV vazio ou inválido.');
+        if (dadosCSV.length === 0) throw new AppError('Arquivo CSV vazio ou inválido.');
 
         const participantesParaSalvar = [];
-
-        // Processamento dos dados (Lógica pura)
         for (const linha of dadosCSV) {
             const csvLower = {};
             Object.keys(linha).forEach(k => csvLower[k.trim().toLowerCase()] = linha[k]);
@@ -51,42 +52,35 @@ class ParticipantService {
                 telefone: formatarTelefone(telefoneRaw),
                 grupo: grupo || null,
                 user_id: userId,
-                event_id: eventId
+                event_id: parseInt(eventId)
             });
         }
 
-        // Persistência (Transação via Prisma: deleta antigos e insere novos)
-        // Nota: Para simplificar com Prisma, podemos deletar e criarBatch
-        // ou usar transaction no controller. Aqui faremos sequencial por simplicidade
-        // pois o Prisma trata conexões muito bem.
+        await this.participantRepository.deleteByEvent(eventId);
+        if(participantesParaSalvar.length > 0) {
+            await this.participantRepository.createBatch(participantesParaSalvar);
+        }
 
-        // O ideal seria usar uma transaction do Prisma ($transaction),
-        // mas vamos usar os métodos do repositório sequencialmente para manter simples.
-        await ParticipantRepository.deleteByEvent(eventId);
-        await ParticipantRepository.createBatch(participantesParaSalvar);
-
-        // Remove arquivo temporário
         try { fs.unlinkSync(filePath); } catch {}
-
         return `${participantesParaSalvar.length} participantes importados com sucesso.`;
     }
 
     async confirmAll(userId, eventId) {
-        await EventService.getById(eventId, userId);
-        const participantes = await ParticipantRepository.listByEvent(eventId);
+        await this.eventService.getById(eventId, userId);
+        const participantes = await this.participantRepository.listByEvent(eventId);
         const ids = participantes.map(p => p.id);
         if(ids.length > 0) {
-            await ParticipantRepository.confirmAttendance(ids);
+            await this.participantRepository.confirmAttendance(ids);
         }
         return 'Todos confirmados.';
     }
 
-    async confirmParticipant(userId, eventId) {
-        await ParticipantRepository.confirmAttendance(userId);
-        return 'Participante confirmado.'
+    async deleteAll(eventId, userId) {
+        await this.eventService.getById(eventId, userId);
+        return await this.participantRepository.deleteByEvent(eventId);
     }
 
-    // ... métodos de delete, update individual seguem a mesma lógica
+    async update(id, eventId, data) {
+        return await this.participantRepository.update(id, eventId, data);
+    }
 }
-
-export default new ParticipantService();

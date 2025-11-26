@@ -1,32 +1,32 @@
-// src/application/EventService.js
-import EventRepository from '../infrastructure/database/repositories/EventRepository.js';
+import { AppError } from '../util/AppError.js';
 
-class EventService {
+export default class EventService {
+    constructor(eventRepository) {
+        this.eventRepository = eventRepository;
+    }
+
     async list(userId) {
-        return await EventRepository.listByUser(userId);
+        return await this.eventRepository.listByUser(userId);
     }
 
     async getById(eventId, userId) {
-        const event = await EventRepository.findById(eventId, userId);
-        if (!event) throw new Error('Evento não encontrado ou acesso negado.');
+        const event = await this.eventRepository.findById(eventId, userId);
+        if (!event) throw new AppError('Evento não encontrado ou acesso negado.', 404);
         return event;
     }
 
     async create(userId, name) {
-        if (!name || !name.trim()) throw new Error('Nome do evento é obrigatório.');
-        return await EventRepository.create(userId, name);
+        if (!name || !name.trim()) throw new AppError('Nome do evento é obrigatório.');
+        return await this.eventRepository.create(userId, name);
     }
 
     async update(eventId, userId, data) {
-        // Garante que o evento existe e é do usuário antes de atualizar
         await this.getById(eventId, userId);
-        return await EventRepository.update(eventId, userId, data);
+        return await this.eventRepository.update(eventId, userId, data);
     }
 
     async delete(eventId, userId) {
         await this.getById(eventId, userId);
-        return await EventRepository.delete(eventId, userId);
+        return await this.eventRepository.delete(eventId, userId);
     }
 }
-
-export default new EventService();

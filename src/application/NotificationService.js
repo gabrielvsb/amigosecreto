@@ -1,32 +1,28 @@
-// src/application/NotificationService.js
 import { renderTemplate } from '../config/appConfig.js';
-import { sendText as sendWahaText } from '../services/wahaService.js'; // Mantemos o serviço do WAHA por enquanto
-import DrawRepository from '../infrastructure/database/repositories/DrawRepository.js';
-import EventService from './EventService.js';
-import ParticipantRepository from "../infrastructure/database/repositories/ParticipantRepository.js";
+import { AppError } from '../util/AppError.js';
 
-// Defaults
-const DEFAULT_TEST_TEMPLATE = '🤖 *Teste de Conexão*\n\nOlá *{{nome}}*, responda OK para confirmar.';
-const DEFAULT_DRAW_TEMPLATE = '*AMIGO SECRETO*\n\nOlá *{{participante}}*, seu amigo secreto é: {{amigo}}.';
+export default class NotificationService {
 
-class NotificationService {
+    constructor(messageProvider, drawRepository, participantRepository, eventService) {
+        this.messageProvider = messageProvider; // WAHA
+        this.drawRepository = drawRepository;
+        this.participantRepository = participantRepository;
+        this.eventService = eventService;
+    }
 
-    // Método auxiliar para pegar templates
     async _getTemplates(eventId, userId) {
-        const evento = await EventService.getById(eventId, userId);
+        const evento = await this.eventService.getById(eventId, userId);
         return {
-            draw: evento.msg_template_draw || DEFAULT_DRAW_TEMPLATE,
-            test: evento.msg_template_test || DEFAULT_TEST_TEMPLATE
+            draw: evento.msg_template_draw || '*AMIGO SECRETO*...',
+            test: evento.msg_template_test || '🤖 *Teste*...'
         };
     }
 
     async sendDrawResults(userId, eventId) {
         const templates = await this._getTemplates(eventId, userId);
+        const pendentes = await this.drawRepository.getPendingMessages(eventId);
 
-        // Busca sorteios pendentes de envio (mensagem_enviada = 0)
-        const pendentes = await DrawRepository.getPendingMessages(eventId);
-
-        if (pendentes.length === 0) return 'Nenhuma mensagem pendente para envio.';
+        if (pendentes.length === 0) return 'Nenhuma mensagem pendente.';
 
         let enviados = 0;
         let erros = 0;
@@ -34,68 +30,52 @@ class NotificationService {
         for (const registro of pendentes) {
             const ctx = {
                 participante: registro.participante.nome,
-                amigo: registro.amigo.nome, // Graças ao include do Prisma
+                amigo: registro.amigo.nome,
                 data: new Date().toLocaleDateString('pt-BR')
             };
 
             const texto = renderTemplate(templates.draw, ctx);
-
-            // Lógica de Telefone (Infrastructure concern, mas ok aqui por enquanto)
             const telefone = registro.participante.telefone?.replace(/\D/g, '');
-            if(!telefone) { erros++; continue; }
 
+            if(!telefone) { erros++; continue; }
             const chatId = `${telefone}@c.us`;
 
             try {
-                await sendWahaText(chatId, texto);
-                await DrawRepository.markAsSent(registro.id); // Prisma update
+                // Aqui usamos a abstração do provider
+                await this.messageProvider.sendText(chatId, texto);
+                await this.drawRepository.markAsSent(registro.id);
                 enviados++;
-                await new Promise(r => setTimeout(r, 1000)); // Delay para não bloquear o WhatsApp
+                await new Promise(r => setTimeout(r, 500));
             } catch (e) {
                 console.error(`Erro envio ${registro.participante.nome}:`, e.message);
                 erros++;
             }
         }
-
         return `Envio finalizado. Sucessos: ${enviados}, Erros: ${erros}.`;
     }
 
     async sendTestNumberNotification(userId, eventId) {
         const templates = await this._getTemplates(eventId, userId);
-
-        const participantes = await ParticipantRepository.listByEvent(eventId)
-
-        if (participantes.length === 0) return 'Nenhuma mensagem pendente para envio.';
+        const participantes = await this.participantRepository.listByEvent(eventId);
 
         let enviados = 0;
         let erros = 0;
 
         for (const participante of participantes) {
-            const ctx = {
-                nome: participante.nome,
-                data: new Date().toLocaleDateString('pt-BR')
-            };
-
+            const ctx = { nome: participante.nome, data: new Date().toLocaleDateString('pt-BR') };
             const texto = renderTemplate(templates.test, ctx);
-
             const telefone = participante.telefone?.replace(/\D/g, '');
+
             if(!telefone) { erros++; continue; }
 
-            const chatId = `${telefone}@c.us`;
-
             try {
-                await sendWahaText(chatId, texto);
-                await ParticipantRepository.confirmAttendance(participante.id)
+                await this.messageProvider.sendText(`${telefone}@c.us`, texto);
                 enviados++;
-                await new Promise(r => setTimeout(r, 1000)); // Delay para não bloquear o WhatsApp
+                await new Promise(r => setTimeout(r, 500));
             } catch (e) {
-                console.error(`Erro envio ${participante.nome}:`, e.message);
                 erros++;
             }
         }
-
-        return `Envio finalizado. Sucessos: ${enviados}, Erros: ${erros}.`;
+        return `Teste finalizado. Enviados: ${enviados}.`;
     }
 }
-
-export default new NotificationService();

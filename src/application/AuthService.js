@@ -1,32 +1,36 @@
 import bcrypt from 'bcryptjs';
 import jwt from 'jsonwebtoken';
-import UserRepository from '../infrastructure/database/repositories/UserRepository.js';
+import { AppError } from '../util/AppError.js';
 
 const JWT_SECRET = process.env.JWT_SECRET || 'dev-secret';
 
-class AuthService {
-    async register(name, email, password) {
-        if (!email || !password) throw new Error('Email e senha obrigatórios.');
+export default class AuthService {
 
-        const existingUser = await UserRepository.findByEmail(email);
-        if (existingUser) throw new Error('Email já cadastrado.');
+    constructor(userRepository) {
+        this.userRepository = userRepository;
+    }
+
+    async register(name, email, password) {
+        if (!email || !password) throw new AppError('Email e senha obrigatórios.');
+
+        // Agora usamos this.userRepository
+        const existingUser = await this.userRepository.findByEmail(email);
+        if (existingUser) throw new AppError('Email já cadastrado.', 409);
 
         const password_hash = await bcrypt.hash(password, 10);
-
-        // Cria usuário usando o repositório
-        const newUser = await UserRepository.create({ name, email, password_hash });
+        const newUser = await this.userRepository.create({ name, email, password_hash });
 
         return this.generateToken(newUser);
     }
 
     async login(email, password) {
-        if (!email || !password) throw new Error('Email e senha obrigatórios.');
+        if (!email || !password) throw new AppError('Email e senha obrigatórios.');
 
-        const user = await UserRepository.findByEmail(email);
-        if (!user) throw new Error('Credenciais inválidas.');
+        const user = await this.userRepository.findByEmail(email);
+        if (!user) throw new AppError('Credenciais inválidas.', 401);
 
         const validPassword = await bcrypt.compare(password, user.password_hash);
-        if (!validPassword) throw new Error('Credenciais inválidas.');
+        if (!validPassword) throw new AppError('Credenciais inválidas.', 401);
 
         return {
             token: this.generateToken(user),
@@ -42,5 +46,3 @@ class AuthService {
         );
     }
 }
-
-export default new AuthService();

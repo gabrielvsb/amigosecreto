@@ -1,36 +1,29 @@
-// src/application/DrawService.js
-import SorteioDomain from '../Sorteio.js'; // Sua classe de domínio original
-import DrawRepository from '../infrastructure/database/repositories/DrawRepository.js';
-import ParticipantRepository from '../infrastructure/database/repositories/ParticipantRepository.js';
-import EventService from './EventService.js';
+import SorteioDomain from '../domain/Sorteio.js';
+import { AppError } from '../util/AppError.js';
 
-class DrawService {
+export default class DrawService {
+
+    constructor(drawRepository, participantRepository, eventService) {
+        this.drawRepository = drawRepository;
+        this.participantRepository = participantRepository;
+        this.eventService = eventService;
+    }
 
     async realizarSorteio(userId, eventId) {
-        // 1. Validação
-        await EventService.getById(eventId, userId);
+        await this.eventService.getById(eventId, userId);
 
-        // 2. Busca Dados
-        const participantes = await ParticipantRepository.listByEvent(eventId);
-        if (participantes.length < 2) {
-            throw new Error('Mínimo de 2 participantes necessários.');
-        }
+        const participantes = await this.participantRepository.listByEvent(eventId);
+        if (participantes.length < 2) throw new AppError('Mínimo de 2 participantes necessários.');
 
-        // 3. Execução do Domínio (Regra de Negócio Pura)
         const motorSorteio = new SorteioDomain(participantes);
         const resultado = motorSorteio.retornarResultado;
-        // ^ Se falhar, o Sorteio.js lança erro, que o controller captura.
 
-        // 4. Persistência
-        await DrawRepository.saveBatch(resultado, userId, eventId);
-
+        await this.drawRepository.saveBatch(resultado, userId, parseInt(eventId));
         return 'Sorteio realizado e salvo com sucesso!';
     }
 
     async getResult(userId, eventId) {
-        await EventService.getById(eventId, userId);
-        return await DrawRepository.getResults(eventId);
+        await this.eventService.getById(eventId, userId);
+        return await this.drawRepository.getResults(eventId);
     }
 }
-
-export default new DrawService();

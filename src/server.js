@@ -7,6 +7,7 @@ import 'dotenv/config';
 import webhookRoutes from './routes/webhookRoutes.js';
 import authRoutes from './routes/authRoutes.js';
 import eventsRoutes from './routes/eventsRoutes.js';
+import { errorMiddleware } from './middleware/errorMiddleware.js';
 
 const __filename = fileURLToPath(import.meta.url);
 const __dirname = path.dirname(__filename);
@@ -28,11 +29,7 @@ app.use('/api', webhookRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/user', eventsRoutes);
 
-// Middleware de erro global para evitar "loading infinito" se algo quebrar feio
-app.use((err, req, res, next) => {
-    console.error('Erro não tratado:', err);
-    res.status(500).json({ error: 'Erro interno no servidor: ' + err.message });
-});
+app.use(errorMiddleware);
 
 const PORT = process.env.PORT || 3000;
 const server = app.listen(PORT, () => console.log(`Rodando na porta ${PORT}`));
